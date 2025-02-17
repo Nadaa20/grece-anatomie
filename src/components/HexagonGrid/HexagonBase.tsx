@@ -1,5 +1,5 @@
-import React from "react";
-import { Vector3 } from "three";
+import React, { useState, useRef } from "react";
+import { Vector3, Mesh } from "three";
 import { useThree } from "@react-three/fiber";
 
 interface HexagonBaseProps {
@@ -11,36 +11,61 @@ interface HexagonBaseProps {
 }
 
 const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name }) => {
+    const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
+    const meshRef = useRef<Mesh>(null);
 
-    // Fonction utilitaire pour calculer la distance horizontale entre deux points
-    const getHorizontalDistance = (point: Vector3, center: Vector3) => {
-        const flatPoint = new Vector3(point.x, center.y, point.z);
-        const flatCenter = new Vector3(center.x, center.y, center.z);
-        return flatPoint.distanceTo(flatCenter);
+    // Vérifie si un point est à l'intérieur d'un hexagone régulier
+    const isPointInHexagon = (point: Vector3, center: Vector3, size: number) => {
+        const dx = Math.abs(point.x - center.x);
+        const dz = Math.abs(point.z - center.z);
+
+        const a = size * 0.5;
+        const b = size * 0.866;
+
+        return dz <= b && (2 * a * b - a * dz - b * dx >= 0);
     };
 
-    const handleClick = (e: any) => {
+    const checkHexagonInteraction = (e: any) => {
         e.stopPropagation();
         const intersects = raycaster.intersectObjects(e.object.parent.children);
 
-        if (intersects.length === 0) return;
+        if (intersects.length === 0) return false;
 
         const hitPoint = intersects[0].point;
         const hexCenter = new Vector3(...position);
-        const horizontalDistance = getHorizontalDistance(hitPoint, hexCenter);
 
-        // Vérifie si le clic est bien à l'intérieur de l'hexagone
-        // On utilise 0.99 * radius pour avoir une petite marge de tolérance
-        if (intersects[0].object === e.object && horizontalDistance <= radius * 0.99) {
+        return intersects[0].object === e.object && isPointInHexagon(hitPoint, hexCenter, radius * 2);
+    };
+
+    const handleClick = (e: any) => {
+        if (checkHexagonInteraction(e)) {
             console.log(`Hexagon clicked: ${name || "Unknown"}`);
         }
     };
 
+    const handlePointerOver = (e: any) => {
+        setIsHovered(checkHexagonInteraction(e));
+    };
+
+    const handlePointerOut = () => {
+        setIsHovered(false);
+    };
+
     return (
-        <mesh position={position} onClick={handleClick}>
+        <mesh
+            ref={meshRef}
+            position={position}
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+        >
             <cylinderGeometry args={[radius, radius, height, 6]} />
-            <meshStandardMaterial color={color || "gray"} />
+            <meshStandardMaterial
+                color={isHovered ? "#ffff00" : (color || "gray")}
+                emissive={isHovered ? "#ffffff" : "#000000"}
+                emissiveIntensity={isHovered ? 0.5 : 0}
+            />
         </mesh>
     );
 };
