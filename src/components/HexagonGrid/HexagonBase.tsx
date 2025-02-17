@@ -79,7 +79,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     // Calculer la position du bouton au-dessus de l'hexagone
     const buttonPosition: [number, number, number] = [
         position[0],          // Même X que l'hexagone
-        position[1] + height + 0.5,  // Y: position de l'hexagone + sa hauteur + un décalage
+        height + 1, // Y: exactement à la surface de l'hexagone
         position[2]           // Même Z que l'hexagone
     ];
 

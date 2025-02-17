@@ -27,12 +27,11 @@ export const DetailButton: React.FC<DetailButtonProps> = ({ position, onClick })
                 />
             </mesh>
 
+            {/* Tête du panneau avec Billboard */}
             <Billboard
                 position={[0, 0, 0]}
-                follow={true}
-                lockX={false}
-                lockY={false}
-                lockZ={false}
+                lockX={true}
+                lockZ={true}
             >
                 <group
                     onPointerOver={() => setHovered(true)}
@@ -41,9 +40,7 @@ export const DetailButton: React.FC<DetailButtonProps> = ({ position, onClick })
                     scale={hovered ? 1.1 : 1}
                 >
                     {/* Panneau en bois */}
-                    <mesh
-                        ref={meshRef}
-                    >
+                    <mesh ref={meshRef}>
                         <boxGeometry args={[1.5, 0.6, 0.08]} />
                         <meshStandardMaterial
                             map={woodTexture}
