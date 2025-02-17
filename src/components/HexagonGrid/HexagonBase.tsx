@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Vector3, Mesh } from "three";
 import { useThree } from "@react-three/fiber";
+import { DetailButton } from './DetailButton'
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -14,6 +15,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
+    const [showDetail, setShowDetail] = useState(false)
 
     // Vérifie si un point est à l'intérieur d'un hexagone régulier
     const isPointInHexagon = (point: Vector3, center: Vector3, size: number) => {
@@ -40,6 +42,11 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleClick = (e: any) => {
         if (checkHexagonInteraction(e)) {
+            // Désactive tous les autres boutons de détail en émettant un événement personnalisé
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+
+            // Active le bouton de détail pour cet hexagone
+            setShowDetail(true);
             console.log(`Hexagon clicked: ${name || "Unknown"}`);
         }
     };
@@ -52,21 +59,54 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
         setIsHovered(false);
     };
 
+    const handleDetailClick = () => {
+        console.log(`Détail de l'hexagone ${name || "Unknown"}`);
+    }
+
+    // Écoute l'événement pour désactiver le bouton quand un autre hexagone est cliqué
+    React.useEffect(() => {
+        const handleOtherHexagonClick = () => {
+            setShowDetail(false);
+        };
+
+        window.addEventListener('hexagon-clicked', handleOtherHexagonClick);
+
+        return () => {
+            window.removeEventListener('hexagon-clicked', handleOtherHexagonClick);
+        };
+    }, []);
+
+    // Calculer la position du bouton au-dessus de l'hexagone
+    const buttonPosition: [number, number, number] = [
+        position[0],          // Même X que l'hexagone
+        position[1] + height + 0.5,  // Y: position de l'hexagone + sa hauteur + un décalage
+        position[2]           // Même Z que l'hexagone
+    ];
+
     return (
-        <mesh
-            ref={meshRef}
-            position={position}
-            onClick={handleClick}
-            onPointerOver={handlePointerOver}
-            onPointerOut={handlePointerOut}
-        >
-            <cylinderGeometry args={[radius, radius, height, 6]} />
-            <meshStandardMaterial
-                color={isHovered ? "#ffff00" : (color || "gray")}
-                emissive={isHovered ? "#ffffff" : "#000000"}
-                emissiveIntensity={isHovered ? 0.5 : 0}
-            />
-        </mesh>
+        <group>
+            <mesh
+                ref={meshRef}
+                position={position}
+                onClick={handleClick}
+                onPointerOver={handlePointerOver}
+                onPointerOut={handlePointerOut}
+            >
+                <cylinderGeometry args={[radius, radius, height, 6]} />
+                <meshStandardMaterial
+                    color={isHovered ? "#ffff00" : (color || "gray")}
+                    emissive={isHovered ? "#ffffff" : "#000000"}
+                    emissiveIntensity={isHovered ? 0.5 : 0}
+                />
+            </mesh>
+
+            {showDetail && (
+                <DetailButton
+                    position={buttonPosition}
+                    onClick={handleDetailClick}
+                />
+            )}
+        </group>
     );
 };
 
