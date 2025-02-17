@@ -36,7 +36,10 @@ export const DetailButton: React.FC<DetailButtonProps> = ({ position, onClick })
                 <group
                     onPointerOver={() => setHovered(true)}
                     onPointerOut={() => setHovered(false)}
-                    onClick={onClick}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClick();
+                    }}
                     scale={hovered ? 1.1 : 1}
                 >
                     {/* Panneau en bois */}
