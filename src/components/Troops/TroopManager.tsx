@@ -34,13 +34,13 @@ const INITIAL_TROOPS: Troop[] = [
     {
         id: uuidv4(),
         hexCoord: { row: 0, col: 1 },
-        type: "archer",
+        type: "frondeur",
         owner: "player1"
     },
     {
         id: uuidv4(),
         hexCoord: { row: 0, col: 2 },
-        type: "cavalry",
+        type: "messager",
         owner: "player1"
     }
 ];

@@ -20,8 +20,8 @@ export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopM
     const color = useMemo(() => {
         switch (type) {
             case 'hoplite': return isSelected ? "#ff6666" : "#800000";
-            case 'archer': return isSelected ? "#66ff66" : "#008000";
-            case 'cavalry': return isSelected ? "#6666ff" : "#000080";
+            case 'frondeur': return isSelected ? "#66ff66" : "#008000";
+            case 'messager': return isSelected ? "#6666ff" : "#000080";
             default: return isSelected ? "#ff6666" : "#0000ff";
         }
     }, [type, isSelected]);
