@@ -95,7 +95,7 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         radius={HEX_RADIUS}
                         height={height}
                         position={[x, y, z]}
-                        mode={mode}
+                        mode={mode as "environment" | "territory"}
                         territory={territory}
                         name={hexName}
                     />
