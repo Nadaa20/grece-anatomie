@@ -37,7 +37,6 @@ const isAdjacentToWater = (row: number, col: number, mapWidth: number, mapHeight
         const newCol = col + dCol;
         if (newRow >= 0 && newRow < mapHeight && newCol >= 0 && newCol < mapWidth) {
             const index = (newRow * mapWidth + newCol) * 4;
-            console.log("adjacentHeight = heightmapData[index] pour (", newRow, newCol, ") :", heightmapData[index]);
             const adjacentHeight = heightmapData[index];
             if (adjacentHeight === 255) { // C'est en fonction de la heighMap, 255 c'est le blanc, et plus c'est blanc plus c'est bas (niveau de la mer)
                 return true;
