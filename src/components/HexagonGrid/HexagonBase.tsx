@@ -1,10 +1,14 @@
-import React, { useState, useRef, useCallback, memo } from "react";
+import React, { useState, useRef } from "react";
 import { Vector3, Mesh } from "three";
 import { useThree } from "@react-three/fiber";
 import { DetailButton } from './DetailButton'
 import { HexagonInteraction } from './HexagonInteraction'
 import { TroopModel } from '../Troops/TroopModel';
 import { useTroopManager } from '../Troops/TroopManager';
+import { Billboard, Text } from '@react-three/drei';
+import { TroopDisplay } from '../Troops/TroopDisplay';
+import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
+import { SplitMovePanel } from '../Troops/SplitMovePanel';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -16,69 +20,142 @@ interface HexagonBaseProps {
     col: number;
 }
 
-const HexagonBase = memo(({ position, radius, height, color, name, row, col }: HexagonBaseProps) => {
+const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
-    const [showDetail, setShowDetail] = useState(false);
-    const { selectedTroop, getTroopAtHex, moveTroop } = useTroopManager();
+    const [showDetail, setShowDetail] = useState(false)
+    const { selectedTroop, getTroopAtHex, moveTroop, troops, splitMoveTroop } = useTroopManager();
+    const troop = getTroopAtHex(row, col);
+    const [showMoveOptions, setShowMoveOptions] = useState(false);
+    const [showSplitPanel, setShowSplitPanel] = useState(false);
 
-    // Mémoisation des positions pour éviter les recalculs inutiles
-    const troopPosition = useRef<[number, number, number]>([
-        position[0],
-        position[1] + height / 2,
-        position[2]
-    ]);
+    const checkHexagonInteraction = (e: any) => {
+        e.stopPropagation();
+        const intersects = raycaster.intersectObjects(e.object.parent.children);
 
-    const buttonPosition = useRef<[number, number, number]>([
+        if (intersects.length === 0) return false;
+
+        return intersects[0].object;
+    };
+
+    const handleClick = (e: any) => {
+        e.stopPropagation();
+
+        if (troop && !selectedTroop) {
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+            setShowDetail(true);
+            return;
+        }
+
+        if (selectedTroop && checkHexagonInteraction(e)) {
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+            const selectedTroopObj = troops.find(t => t.id === selectedTroop);
+
+            if (selectedTroopObj?.isSquad) {
+                setShowMoveOptions(true);
+            } else {
+                // Si c'est une troupe simple, on la déplace directement
+                moveTroop(selectedTroop, { row, col });
+            }
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        setShowDetail(false);
+        setShowMoveOptions(false);
+        console.log(`Hexagon clicked: ${name || "Unknown"}`);
+    };
+
+    const handlePointerOver = (e: any) => {
+        const interaction = checkHexagonInteraction(e);
+        setIsHovered(interaction !== false);
+    };
+
+    const handlePointerOut = () => {
+        setIsHovered(false);
+    };
+
+    const handleDetailClick = () => {
+        console.log(`Détail de l'hexagone ${name || "Unknown"}`);
+    }
+
+    const handleMoveAll = () => {
+        if (selectedTroop) {
+            moveTroop(selectedTroop, { row, col });
+            setShowMoveOptions(false);
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        }
+    };
+
+    const handleSplitMove = () => {
+        setShowMoveOptions(false);
+        setShowSplitPanel(true);
+    };
+
+    const handleSplitConfirm = (splits: { [type: string]: number }) => {
+        if (selectedTroop) {
+            splitMoveTroop(selectedTroop, { row, col }, splits);
+            setShowSplitPanel(false);
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        }
+    };
+
+    const handleSplitCancel = () => {
+        setShowSplitPanel(false);
+    };
+
+    const getTroopTypes = () => {
+        const selectedTroopObj = troops.find(t => t.id === selectedTroop);
+        if (!selectedTroopObj) return [];
+
+        if (selectedTroopObj.isSquad && selectedTroopObj.troops) {
+            // Compter les types de troupes dans l'escouade
+            const typeCounts = selectedTroopObj.troops.reduce((acc: { [key: string]: number }, troop) => {
+                acc[troop.type] = (acc[troop.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(typeCounts).map(([type, count]) => ({
+                type,
+                count
+            }));
+        }
+
+        // Si c'est une troupe simple
+        return [{ type: selectedTroopObj.type, count: 1 }];
+    };
+
+    React.useEffect(() => {
+        const handleOtherHexagonClick = () => {
+            setShowDetail(false);
+            setShowMoveOptions(false);
+        };
+
+        window.addEventListener('hexagon-clicked', handleOtherHexagonClick);
+
+        return () => {
+            window.removeEventListener('hexagon-clicked', handleOtherHexagonClick);
+        };
+    }, []);
+
+    const buttonPosition: [number, number, number] = [
         position[0],
         height + 1,
         position[2]
-    ]);
+    ];
 
-    // Mémoisation des callbacks
-    const handleClick = useCallback((e: any) => {
-        e.stopPropagation();
-        if (selectedTroop) {
-            moveTroop(selectedTroop, { row, col });
-            return;
-        }
-        window.dispatchEvent(new CustomEvent('hexagon-clicked'));
-        setShowDetail(true);
-    }, [selectedTroop, row, col, moveTroop]);
+    const troopPosition: [number, number, number] = [
+        position[0],
+        position[1] + (height / 2),
+        position[2]
+    ];
 
-    const handlePointerOver = useCallback((e: any) => {
-        e.stopPropagation();
-        const intersects = raycaster.intersectObjects(e.object.parent.children);
-        if (intersects.length > 0) {
-            const hitPoint = intersects[0].point;
-            const hexCenter = new Vector3(...position);
-            if (intersects[0].object === e.object) {
-                setIsHovered(true);
-            }
-        }
-    }, [position, raycaster]);
-
-    const handlePointerOut = useCallback(() => {
-        setIsHovered(false);
-    }, []);
-
-    // Optimisation du rendu avec useMemo pour la géométrie
-    const geometry = React.useMemo(() => (
-        <cylinderGeometry args={[radius, radius, height, 6]} />
-    ), [radius, height]);
-
-    // Optimisation du rendu avec useMemo pour le matériau
-    const material = React.useMemo(() => (
-        <meshStandardMaterial
-            color={isHovered ? "#ffff00" : (color || "gray")}
-            emissive={isHovered ? "#ffffff" : "#000000"}
-            emissiveIntensity={isHovered ? 0.5 : 0}
-        />
-    ), [isHovered, color]);
-
-    // Récupération de la troupe de manière optimisée
-    const troop = getTroopAtHex(row, col);
+    const optionsPanelPosition: [number, number, number] = [
+        position[0],
+        height + 1.5,
+        position[2]
+    ];
 
     return (
         <group>
@@ -89,32 +166,49 @@ const HexagonBase = memo(({ position, radius, height, color, name, row, col }: H
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
             >
-                {geometry}
-                {material}
+                <cylinderGeometry args={[radius, radius, height, 6]} />
+                <meshStandardMaterial
+                    color={isHovered ? "#ffff00" : (color || "gray")}
+                    emissive={isHovered ? "#ffffff" : "#000000"}
+                    emissiveIntensity={isHovered ? 0.5 : 0}
+                />
             </mesh>
 
             {troop && (
-                <TroopModel
-                    position={troopPosition.current}
-                    troopId={troop.id}
-                    type={troop.type}
-                    scale={0.3}
+                <TroopDisplay
+                    troop={troop}
+                    position={troopPosition}
                 />
             )}
 
             {showDetail && (
                 <DetailButton
-                    position={buttonPosition.current}
-                    onClick={() => setShowDetail(false)}
+                    position={buttonPosition}
+                    onClick={handleDetailClick}
                 />
             )}
 
-            <HexagonInteraction
-                position={position}
-                name={name || ''}
-            />
+            {showMoveOptions && selectedTroop && (
+                <MoveOptionsPanel
+                    position={optionsPanelPosition}
+                    onMoveAll={handleMoveAll}
+                    onSplitMove={handleSplitMove}
+                    troopTypes={getTroopTypes()}
+                />
+            )}
+
+            {showSplitPanel && selectedTroop && (
+                <SplitMovePanel
+                    position={optionsPanelPosition}
+                    troopTypes={getTroopTypes()}
+                    onConfirm={handleSplitConfirm}
+                    onCancel={handleSplitCancel}
+                />
+            )}
+
+            <HexagonInteraction position={position} name={name || ''} />
         </group>
     );
-});
+};
 
 export default HexagonBase;

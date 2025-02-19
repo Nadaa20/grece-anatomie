@@ -18,6 +18,9 @@ export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopM
     }, [troopId, selectTroop]);
 
     const color = useMemo(() => {
+        if (type === 'squad') {
+            return isSelected ? "#ffd700" : "#daa520"; // Couleur dorée pour les escouades
+        }
         switch (type) {
             case 'hoplite': return isSelected ? "#ff6666" : "#800000";
             case 'frondeur': return isSelected ? "#66ff66" : "#008000";
@@ -27,8 +30,10 @@ export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopM
     }, [type, isSelected]);
 
     const geometry = useMemo(() => (
-        <boxGeometry args={[1, 1, 1]} />
-    ), []);
+        type === 'squad'
+            ? <cylinderGeometry args={[0.5, 0.5, 1, 8]} /> // Forme cylindrique pour les escouades
+            : <boxGeometry args={[1, 1, 1]} />
+    ), [type]);
 
     const material = useMemo(() => (
         <meshStandardMaterial
@@ -46,4 +51,4 @@ export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopM
             </mesh>
         </group>
     );
-}); 
+});
