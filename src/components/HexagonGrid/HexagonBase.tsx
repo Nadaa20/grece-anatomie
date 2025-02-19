@@ -15,7 +15,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
-    const [showDetail, setShowDetail] = useState(false)
+    const [showDetail, setShowDetail] = useState(false);
 
     // Vérifie si un point est à l'intérieur d'un hexagone régulier
     const isPointInHexagon = (point: Vector3, center: Vector3, size: number) => {
@@ -61,6 +61,9 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleDetailClick = () => {
         console.log(`Détail de l'hexagone ${name || "Unknown"}`);
+        window.dispatchEvent(new CustomEvent('show-parchemin', { 
+            detail: { hexagonName: name || "Unknown" } 
+        }));
     }
 
     // Écoute l'événement pour désactiver le bouton quand un autre hexagone est cliqué

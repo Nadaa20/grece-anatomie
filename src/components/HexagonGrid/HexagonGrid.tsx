@@ -46,7 +46,7 @@ const isAdjacentToWater = (row: number, col: number, mapWidth: number, mapHeight
     return false;
 };
 
-const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode: string }> = ({
+const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode: "environment" | "territory" }> = ({
     heightmapPath,
     colormapPath,
     mode,
