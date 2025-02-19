@@ -45,6 +45,12 @@ const INITIAL_TROOPS: Troop[] = [
         hexCoord: { row: 0, col: 2 },
         type: "messager",
         owner: "player1"
+    },
+    {
+        id: uuidv4(),
+        hexCoord: { row: 0, col: 3 },
+        type: "hoplite",
+        owner: "player1"
     }
 ];
 
@@ -63,133 +69,134 @@ interface TroopManagerProviderProps {
 export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ children }) => {
     const [troops, setTroops] = useState<Troop[]>(INITIAL_TROOPS);
     const [selectedTroop, setSelectedTroop] = useState<string | null>(null);
-    const selectedTroopRef = useRef<string | null>(null);
 
-    const selectTroop = useCallback((id: string) => {
-        setSelectedTroop(prev => {
-            const newSelected = prev === id ? null : id;
-            selectedTroopRef.current = newSelected;
-            return newSelected;
-        });
-    }, []);
+    // Fonction simple pour sélectionner/désélectionner une troupe
+    const selectTroop = (id: string) => {
+        if (selectedTroop === id) {
+            setSelectedTroop(null);
+        } else {
+            setSelectedTroop(id);
+        }
+    };
 
-    const moveTroop = useCallback((id: string, newHexCoord: HexCoordinates) => {
-        setTroops(prev => {
-            const movingTroop = prev.find(t => t.id === id);
-            const targetHexTroop = prev.find(t =>
-                t.hexCoord.row === newHexCoord.row &&
-                t.hexCoord.col === newHexCoord.col &&
-                t.id !== id
-            );
+    // Fonction simplifiée pour déplacer une troupe
+    const moveTroop = (id: string, newHexCoord: HexCoordinates) => {
+        const newTroops = [...troops];
+        const troopToMove = newTroops.find(t => t.id === id);
+        const targetTroop = newTroops.find(t =>
+            t.hexCoord.row === newHexCoord.row &&
+            t.hexCoord.col === newHexCoord.col
+        );
 
-            if (targetHexTroop) {
-                // Si une troupe existe déjà à la destination, créer une escouade
-                const squad: Troop = {
+        // Si on trouve la troupe à déplacer
+        if (troopToMove) {
+            // Si il y a déjà une troupe à la destination
+            if (targetTroop) {
+                // On crée une liste de toutes les troupes à fusionner
+                let allTroops = [];
+
+                // On ajoute les troupes de la source
+                if (troopToMove.isSquad) {
+                    allTroops = [...troopToMove.troops!];
+                } else {
+                    allTroops = [troopToMove];
+                }
+
+                // On ajoute les troupes de la cible
+                if (targetTroop.isSquad) {
+                    allTroops = [...allTroops, ...targetTroop.troops!];
+                } else {
+                    allTroops = [...allTroops, targetTroop];
+                }
+
+                // On crée une nouvelle escouade
+                const newSquad = {
                     id: uuidv4(),
                     hexCoord: newHexCoord,
                     type: 'squad',
-                    owner: movingTroop?.owner || targetHexTroop.owner,
+                    owner: troopToMove.owner,
                     isSquad: true,
-                    troops: [
-                        { ...targetHexTroop, hexCoord: newHexCoord },
-                        ...(movingTroop ? [{ ...movingTroop, hexCoord: newHexCoord }] : [])
-                    ]
+                    troops: allTroops
                 };
 
-                // Retourner le nouveau tableau sans les troupes fusionnées et avec la nouvelle escouade
-                return prev
-                    .filter(t => t.id !== id && t.id !== targetHexTroop.id)
-                    .concat(squad);
+                // On supprime les anciennes troupes et on ajoute la nouvelle escouade
+                setTroops(troops.filter(t => t.id !== id && t.id !== targetTroop.id).concat(newSquad));
+            } else {
+                // Sinon on déplace simplement la troupe
+                setTroops(troops.map(troop =>
+                    troop.id === id ? { ...troop, hexCoord: newHexCoord } : troop
+                ));
             }
-
-            // Comportement normal si pas de fusion
-            return prev.map(troop =>
-                troop.id === id ? { ...troop, hexCoord: newHexCoord } : troop
-            );
-        });
+        }
         setSelectedTroop(null);
-        selectedTroopRef.current = null;
-    }, []);
+    };
 
-    const getTroopAtHex = useCallback((row: number, col: number) => {
-        return troops.find(troop =>
-            troop.hexCoord.row === row && troop.hexCoord.col === col
-        );
-    }, [troops]);
+    // Fonction simplifiée pour diviser et déplacer une troupe
+    const splitMoveTroop = (sourceId: string, newHexCoord: HexCoordinates, splitCounts: { [type: string]: number }) => {
+        const sourceTroop = troops.find(t => t.id === sourceId);
+        if (!sourceTroop?.isSquad) return;
 
-    const splitMoveTroop = useCallback((
-        sourceId: string,
-        newHexCoord: HexCoordinates,
-        splitCounts: { [type: string]: number }
-    ) => {
-        setTroops(prev => {
-            const sourceTroop = prev.find(t => t.id === sourceId);
-            if (!sourceTroop) return prev;
+        const newTroops = troops.filter(t => t.id !== sourceId);
+        const troopsToMove = [];
+        const remainingTroops = [];
 
-            const newTroops: Troop[] = prev.filter(t => t.id !== sourceId);
-
-            // Préparer les troupes à déplacer
-            let troopsToMove: Troop[] = [];
-            let remainingTroops: Troop[] = [];
-
-            if (sourceTroop.isSquad && sourceTroop.troops) {
-                // Pour chaque type, sélectionner le nombre demandé de troupes
-                Object.entries(splitCounts).forEach(([type, count]) => {
-                    const troopsOfType = sourceTroop.troops!.filter(t => t.type === type);
-                    troopsToMove = troopsToMove.concat(troopsOfType.slice(0, count));
-                    remainingTroops = remainingTroops.concat(troopsOfType.slice(count));
-                });
-
-                // Créer une nouvelle escouade avec les troupes déplacées si nécessaire
-                if (troopsToMove.length > 1) {
-                    const newSquad: Troop = {
-                        id: uuidv4(),
-                        hexCoord: newHexCoord,
-                        type: 'squad',
-                        owner: sourceTroop.owner,
-                        isSquad: true,
-                        troops: troopsToMove.map(t => ({ ...t, hexCoord: newHexCoord }))
-                    };
-                    newTroops.push(newSquad);
-                } else if (troopsToMove.length === 1) {
-                    // Si une seule troupe, la déplacer simplement
-                    newTroops.push({
-                        ...troopsToMove[0],
-                        id: uuidv4(),
-                        hexCoord: newHexCoord
-                    });
-                }
-
-                // Gérer les troupes restantes
-                if (remainingTroops.length > 1) {
-                    // Garder l'escouade avec les troupes restantes
-                    newTroops.push({
-                        ...sourceTroop,
-                        troops: remainingTroops.map(t => ({ ...t, hexCoord: sourceTroop.hexCoord }))
-                    });
-                } else if (remainingTroops.length === 1) {
-                    // Si une seule troupe reste, la garder simple
-                    newTroops.push({
-                        ...remainingTroops[0],
-                        id: uuidv4(),
-                        hexCoord: sourceTroop.hexCoord // Garder la position de l'escouade
-                    });
-                }
-            }
-
-            return newTroops;
+        // Pour chaque type de troupe
+        Object.entries(splitCounts).forEach(([type, count]) => {
+            const troopsOfType = sourceTroop.troops!.filter(t => t.type === type);
+            // On prend le nombre demandé pour le déplacement
+            troopsToMove.push(...troopsOfType.slice(0, count));
+            // On garde le reste
+            remainingTroops.push(...troopsOfType.slice(count));
         });
-        setSelectedTroop(null); // Désélectionner la troupe après le déplacement
-    }, []);
 
-    const value = useMemo(() => ({
+        // On crée les nouvelles troupes/escouades selon le nombre
+        if (troopsToMove.length > 0) {
+            if (troopsToMove.length > 1) {
+                newTroops.push({
+                    id: uuidv4(),
+                    hexCoord: newHexCoord,
+                    type: 'squad',
+                    owner: sourceTroop.owner,
+                    isSquad: true,
+                    troops: troopsToMove
+                });
+            } else {
+                newTroops.push({
+                    ...troopsToMove[0],
+                    id: uuidv4(),
+                    hexCoord: newHexCoord
+                });
+            }
+        }
+
+        if (remainingTroops.length > 0) {
+            if (remainingTroops.length > 1) {
+                newTroops.push({
+                    ...sourceTroop,
+                    troops: remainingTroops
+                });
+            } else {
+                newTroops.push({
+                    ...remainingTroops[0],
+                    id: uuidv4(),
+                    hexCoord: sourceTroop.hexCoord
+                });
+            }
+        }
+
+        setTroops(newTroops);
+        setSelectedTroop(null);
+    };
+
+    const value = {
         troops,
         selectedTroop,
         selectTroop,
         moveTroop,
-        getTroopAtHex,
+        getTroopAtHex: (row: number, col: number) =>
+            troops.find(t => t.hexCoord.row === row && t.hexCoord.col === col),
         splitMoveTroop
-    }), [troops, selectedTroop, selectTroop, moveTroop, getTroopAtHex, splitMoveTroop]);
+    };
 
     return (
         <TroopManagerContext.Provider value={value}>
