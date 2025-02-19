@@ -42,7 +42,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const handleClick = (e: any) => {
         e.stopPropagation();
 
-        if (troop && !selectedTroop) {
+        if (!selectedTroop) {
             window.dispatchEvent(new CustomEvent('hexagon-clicked'));
             setShowDetail(true);
             return;
@@ -55,7 +55,6 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
             if (selectedTroopObj?.isSquad) {
                 setShowMoveOptions(true);
             } else {
-                // Si c'est une troupe simple, on la déplace directement
                 moveTroop(selectedTroop, { row, col });
             }
             return;
@@ -64,7 +63,6 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
         window.dispatchEvent(new CustomEvent('hexagon-clicked'));
         setShowDetail(false);
         setShowMoveOptions(false);
-        console.log(`Hexagon clicked: ${name || "Unknown"}`);
     };
 
     const handlePointerOver = (e: any) => {
