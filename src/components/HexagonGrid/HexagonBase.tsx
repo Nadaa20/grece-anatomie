@@ -25,10 +25,14 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
     const [showDetail, setShowDetail] = useState(false)
-    const { selectedTroop, getTroopAtHex, moveTroop, troops, splitMoveTroop } = useTroopManager();
+    const { selectedTroop, getTroopAtHex, moveTroop, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
     const troop = getTroopAtHex(row, col);
     const [showMoveOptions, setShowMoveOptions] = useState(false);
     const [showSplitPanel, setShowSplitPanel] = useState(false);
+
+    const isInPath = path.some(coord => coord.row === row && coord.col === col);
+    const isPathStart = path.length > 0 && path[0].row === row && path[0].col === col;
+    const isPathEnd = path.length > 0 && path[path.length - 1].row === row && path[path.length - 1].col === col;
 
     const checkHexagonInteraction = (e: any) => {
         e.stopPropagation();
@@ -55,7 +59,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
             if (selectedTroopObj?.isSquad) {
                 setShowMoveOptions(true);
             } else {
-                moveTroop(selectedTroop, { row, col });
+                startMoving(selectedTroop, { row, col });
             }
             return;
         }
@@ -166,9 +170,18 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
             >
                 <cylinderGeometry args={[radius, radius, height, 6]} />
                 <meshStandardMaterial
-                    color={isHovered ? "#ffff00" : (color || "gray")}
-                    emissive={isHovered ? "#ffffff" : "#000000"}
-                    emissiveIntensity={isHovered ? 0.5 : 0}
+                    color={
+                        isInPath ? "#ffffff" :
+                            isHovered ? "#ffff00" : (color || "gray")
+                    }
+                    emissive={
+                        isInPath ? "#ffffff" :
+                            isHovered ? "#ffffff" : "#000000"
+                    }
+                    emissiveIntensity={
+                        isInPath ? 0.8 :
+                            isHovered ? 0.5 : 0
+                    }
                 />
             </mesh>
 
