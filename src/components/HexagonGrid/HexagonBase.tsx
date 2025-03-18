@@ -25,7 +25,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
     const [showDetail, setShowDetail] = useState(false)
-    const { selectedTroop, getTroopAtHex, moveTroop, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
+    const { selectedTroop, getTroopAtHex, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
     const troop = getTroopAtHex(row, col);
     const [showMoveOptions, setShowMoveOptions] = useState(false);
     const [showSplitPanel, setShowSplitPanel] = useState(false);
@@ -84,7 +84,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleMoveAll = () => {
         if (selectedTroop) {
-            moveTroop(selectedTroop, { row, col });
+            startMoving(selectedTroop, { row, col });
             setShowMoveOptions(false);
             window.dispatchEvent(new CustomEvent('hexagon-clicked'));
         }

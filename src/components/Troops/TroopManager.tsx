@@ -27,7 +27,6 @@ interface TroopManagerContextType {
     troops: Troop[];
     selectedTroop: string | null;
     selectTroop: (id: string) => void;
-    moveTroop: (id: string, newHexCoord: HexCoordinates) => void;
     getTroopAtHex: (row: number, col: number) => Troop | undefined;
     splitMoveTroop: (sourceId: string, newHexCoord: HexCoordinates, splitCounts: { [type: string]: number }) => void;
     path: HexCoordinates[];
@@ -84,6 +83,18 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const [isMoving, setIsMoving] = useState(false);
     const [movingTroop, setMovingTroop] = useState<string | null>(null);
     const [currentPathIndex, setCurrentPathIndex] = useState(0);
+    const [targetTroopId, setTargetTroopId] = useState<string | null>(null);
+    const [pendingMoves, setPendingMoves] = useState<{ id: string, target: HexCoordinates }[]>([]);
+
+    // Effet pour gérer les déplacements en attente
+    useEffect(() => {
+        if (pendingMoves.length > 0) {
+            pendingMoves.forEach(({ id, target }) => {
+                startMoving(id, target);
+            });
+            setPendingMoves([]);
+        }
+    }, [troops, pendingMoves]);
 
     // Fonction simple pour sélectionner/désélectionner une troupe
     const selectTroop = (id: string) => {
@@ -152,8 +163,8 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         if (!sourceTroop?.isSquad) return;
 
         const newTroops = troops.filter(t => t.id !== sourceId);
-        const troopsToMove = [];
-        const remainingTroops = [];
+        const troopsToMove: Troop[] = [];
+        const remainingTroops: Troop[] = [];
 
         // Pour chaque type de troupe
         Object.entries(splitCounts).forEach(([type, count]) => {
@@ -167,20 +178,26 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         // On crée les nouvelles troupes/escouades selon le nombre
         if (troopsToMove.length > 0) {
             if (troopsToMove.length > 1) {
-                newTroops.push({
+                const newSquad = {
                     id: uuidv4(),
-                    hexCoord: newHexCoord,
+                    hexCoord: sourceTroop.hexCoord, // On commence à la position de la source
                     type: 'squad',
                     owner: sourceTroop.owner,
                     isSquad: true,
                     troops: troopsToMove
-                });
+                };
+                newTroops.push(newSquad);
+                // On ajoute le déplacement en attente
+                setPendingMoves(prev => [...prev, { id: newSquad.id, target: newHexCoord }]);
             } else {
-                newTroops.push({
+                const newTroop = {
                     ...troopsToMove[0],
                     id: uuidv4(),
-                    hexCoord: newHexCoord
-                });
+                    hexCoord: sourceTroop.hexCoord // On commence à la position de la source
+                };
+                newTroops.push(newTroop);
+                // On ajoute le déplacement en attente
+                setPendingMoves(prev => [...prev, { id: newTroop.id, target: newHexCoord }]);
             }
         }
 
@@ -199,6 +216,7 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
             }
         }
 
+        // On met à jour l'état des troupes
         setTroops(newTroops);
         setSelectedTroop(null);
     };
@@ -215,20 +233,18 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         const neighbors: HexCoordinates[] = [];
         const isEvenRow = hex.row % 2 === 0;
 
-        // Les directions dépendent de si la ligne est paire ou impaire
-        // Dans une grille hexagonale décalée :
-        // - Les lignes paires ont leurs voisins décalés vers la gauche
-        // - Les lignes impaires ont leurs voisins décalés vers la droite
-        const directions = isEvenRow
-            ? [
+        let directions;
+        if (isEvenRow) {
+            directions = [
                 { row: -1, col: -1 },  // haut-gauche
                 { row: -1, col: 0 },   // haut-droite
                 { row: 0, col: -1 },   // gauche
                 { row: 0, col: 1 },    // droite
                 { row: 1, col: -1 },   // bas-gauche
                 { row: 1, col: 0 }     // bas-droite
-            ]
-            : [
+            ];
+        } else {
+            directions = [
                 { row: -1, col: 0 },   // haut-gauche
                 { row: -1, col: 1 },   // haut-droite
                 { row: 0, col: -1 },   // gauche
@@ -236,6 +252,7 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
                 { row: 1, col: 0 },    // bas-gauche
                 { row: 1, col: 1 }     // bas-droite
             ];
+        }
 
         directions.forEach(dir => {
             const newRow = hex.row + dir.row;
@@ -297,12 +314,22 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         const troop = troops.find(t => t.id === id);
         if (!troop) return;
 
+        const targetTroop = troops.find(t =>
+            t.hexCoord.row === target.row &&
+            t.hexCoord.col === target.col
+        );
+
+        // On calcule toujours le chemin vers la destination
         const path = findPath(troop.hexCoord, target);
         if (path.length > 0) {
             setPath(path);
             setMovingTroop(id);
             setIsMoving(true);
             setCurrentPathIndex(0);
+            // On stocke la troupe cible pour la fusion après le déplacement
+            if (targetTroop) {
+                setTargetTroopId(targetTroop.id);
+            }
         }
     };
 
@@ -319,22 +346,65 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
                 );
                 setTroops(newTroops);
                 setCurrentPathIndex(prev => prev + 1);
+
+                // Si c'est le dernier déplacement, on gère la fusion immédiatement
+                if (currentPathIndex === path.length - 1) {
+                    const targetTroop = newTroops.find(t =>
+                        t.hexCoord.row === path[path.length - 1].row &&
+                        t.hexCoord.col === path[path.length - 1].col &&
+                        t.id !== movingTroop
+                    );
+
+                    if (targetTroop) {
+                        const movingTroopObj = newTroops.find(t => t.id === movingTroop);
+                        if (movingTroopObj) {
+                            let allTroops = [];
+
+                            // On ajoute les troupes de la source
+                            if (movingTroopObj.isSquad) {
+                                allTroops = [...movingTroopObj.troops!];
+                            } else {
+                                allTroops = [movingTroopObj];
+                            }
+
+                            // On ajoute les troupes de la cible
+                            if (targetTroop.isSquad) {
+                                allTroops = [...allTroops, ...targetTroop.troops!];
+                            } else {
+                                allTroops = [...allTroops, targetTroop];
+                            }
+
+                            // On crée une nouvelle escouade
+                            const newSquad = {
+                                id: uuidv4(),
+                                hexCoord: path[path.length - 1],
+                                type: 'squad',
+                                owner: movingTroopObj.owner,
+                                isSquad: true,
+                                troops: allTroops
+                            };
+
+                            // On supprime les anciennes troupes et on ajoute la nouvelle escouade
+                            setTroops(newTroops.filter(t => t.id !== movingTroop && t.id !== targetTroop.id).concat(newSquad));
+                        }
+                    }
+                }
             } else {
                 setIsMoving(false);
                 setMovingTroop(null);
+                setTargetTroopId(null);
                 setPath([]);
                 setCurrentPathIndex(0);
             }
         }, 500); // Déplacement toutes les 500ms
 
         return () => clearInterval(interval);
-    }, [isMoving, movingTroop, path, currentPathIndex, troops]);
+    }, [isMoving, movingTroop, targetTroopId, path, currentPathIndex, troops]);
 
     const value = {
         troops,
         selectedTroop,
         selectTroop,
-        moveTroop,
         getTroopAtHex: (row: number, col: number) =>
             troops.find(t => t.hexCoord.row === row && t.hexCoord.col === col),
         splitMoveTroop,
