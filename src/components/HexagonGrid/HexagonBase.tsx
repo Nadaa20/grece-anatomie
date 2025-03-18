@@ -80,8 +80,8 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleDetailClick = () => {
         console.log(`Détail de l'hexagone ${name || "Unknown"}`);
-        window.dispatchEvent(new CustomEvent('show-parchemin', { 
-            detail: { hexagonName: name || "Unknown" } 
+        window.dispatchEvent(new CustomEvent('show-parchemin', {
+            detail: { hexagonName: name || "Unknown" }
         }));
     }
 

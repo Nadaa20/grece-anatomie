@@ -138,6 +138,21 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             col={col}
                         />
                     );
+                } else if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
+                    hexName = `Sand-${territory || "Neutral"}-(${baseName})`;
+                    hexagons.push(
+                        <Sand
+                            key={hexName}
+                            radius={HEX_RADIUS}
+                            height={height}
+                            position={[x, y, z]}
+                            mode={mode}
+                            territory={territory}
+                            name={hexName}
+                            row={row}
+                            col={col}
+                        />
+                    );
                 } else {
                     hexName = `Grass-${territory || "Neutral"}-(${baseName})`;
                     hexagons.push(
@@ -151,34 +166,6 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             name={hexName}
                             row={row}
                             col={col}
-                        />
-                    );
-                }
-            } else if (height > 0) {
-                if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
-                    hexName = `Sand-${territory || "Neutral"}-(${baseName})`;
-                    hexagons.push(
-                        <Sand
-                            key={hexName}
-                            radius={HEX_RADIUS}
-                            height={height}
-                            position={[x, y, z]}
-                            mode={mode}
-                            territory={territory}
-                            name={hexName}
-                        />
-                    );
-                } else {
-                    hexName = `Grass-${territory || "Neutral"}-(${baseName})`;
-                    hexagons.push(
-                        <Grass
-                            key={hexName}
-                            radius={HEX_RADIUS}
-                            height={height}
-                            position={[x, y, z]}
-                            mode={mode}
-                            territory={territory}
-                            name={hexName}
                         />
                     );
                 }

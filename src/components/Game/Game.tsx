@@ -11,20 +11,22 @@ interface GameProps {
 
 const Game: React.FC<GameProps> = ({ mode }) => {
     return (
-        <Canvas>
-            <Camera />
-
-            <ambientLight intensity={0.7} />
-            <directionalLight position={[10, 10, 10]} />
-
-            <TroopManagerProvider>
-                <HexagonGrid
-                    heightmapPath="/assets/maps/heightmap.png"
-                    colormapPath="/assets/maps/colormap.png"
-                    mode={mode}
-                />
-            </Canvas>
+        <>
             <Interface2D />
+            <Canvas>
+                <Camera />
+
+                <ambientLight intensity={0.7} />
+                <directionalLight position={[10, 10, 10]} />
+
+                <TroopManagerProvider>
+                    <HexagonGrid
+                        heightmapPath="/assets/maps/heightmap.png"
+                        colormapPath="/assets/maps/colormap.png"
+                        mode={mode}
+                    />
+                </TroopManagerProvider>
+            </Canvas>
         </>
     );
 };

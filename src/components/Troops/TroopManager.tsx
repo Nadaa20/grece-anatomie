@@ -1,5 +1,5 @@
 import React, { useState, useContext, createContext, useRef, useCallback, useMemo, useEffect } from 'react';
-import TroopModel from './TroopModel';
+import { TroopModel } from './TroopModel';
 import { v4 as uuidv4 } from 'uuid';
 
 interface HexCoordinates {
