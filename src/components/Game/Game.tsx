@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import Camera from "../Camera/Camera";
 import HexagonGrid from "../HexagonGrid/HexagonGrid";
 import { Interface2D } from "../Interface2D/Interface2D";
+import { TroopManagerProvider } from "../Troops/TroopManager";
 
 interface GameProps {
     mode: "environment" | "territory";
