@@ -9,12 +9,14 @@ interface StoneProps {
     mode: "environment" | "territory";
     territory?: string | null;
     name: string;
+    row: number;
+    col: number;
 }
 
-const Stone: React.FC<StoneProps> = ({ position, radius, height, mode, territory, name }) => {
+const Stone: React.FC<StoneProps> = ({ position, radius, height, mode, territory, name, row, col }) => {
     const color = mode === "territory" && territory ? TERRITORY_COLORS[territory] : "gray";
 
-    return <HexagonBase position={position} radius={radius} height={height} color={color} name={name} />;
+    return <HexagonBase position={position} radius={radius} height={height} color={color} name={name} row={row} col={col} />;
 };
 
 export default Stone;

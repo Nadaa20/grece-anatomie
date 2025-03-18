@@ -2,6 +2,13 @@ import React, { useState, useRef } from "react";
 import { Vector3, Mesh } from "three";
 import { useThree } from "@react-three/fiber";
 import { DetailButton } from './DetailButton'
+import { HexagonInteraction } from './HexagonInteraction'
+import { TroopModel } from '../Troops/TroopModel';
+import { useTroopManager } from '../Troops/TroopManager';
+import { Billboard, Text } from '@react-three/drei';
+import { TroopDisplay } from '../Troops/TroopDisplay';
+import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
+import { SplitMovePanel } from '../Troops/SplitMovePanel';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -9,24 +16,23 @@ interface HexagonBaseProps {
     height: number;
     color?: string;
     name?: string;
+    row: number;
+    col: number;
 }
 
-const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name }) => {
+const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
-    const [showDetail, setShowDetail] = useState(false);
+    const [showDetail, setShowDetail] = useState(false)
+    const { selectedTroop, getTroopAtHex, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
+    const troop = getTroopAtHex(row, col);
+    const [showMoveOptions, setShowMoveOptions] = useState(false);
+    const [showSplitPanel, setShowSplitPanel] = useState(false);
 
-    // Vérifie si un point est à l'intérieur d'un hexagone régulier
-    const isPointInHexagon = (point: Vector3, center: Vector3, size: number) => {
-        const dx = Math.abs(point.x - center.x);
-        const dz = Math.abs(point.z - center.z);
-
-        const a = size * 0.5;
-        const b = size * 0.866;
-
-        return dz <= b && (2 * a * b - a * dz - b * dx >= 0);
-    };
+    const isInPath = path.some(coord => coord.row === row && coord.col === col);
+    const isPathStart = path.length > 0 && path[0].row === row && path[0].col === col;
+    const isPathEnd = path.length > 0 && path[path.length - 1].row === row && path[path.length - 1].col === col;
 
     const checkHexagonInteraction = (e: any) => {
         e.stopPropagation();
@@ -34,25 +40,38 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
         if (intersects.length === 0) return false;
 
-        const hitPoint = intersects[0].point;
-        const hexCenter = new Vector3(...position);
-
-        return intersects[0].object === e.object && isPointInHexagon(hitPoint, hexCenter, radius * 2);
+        return intersects[0].object;
     };
 
     const handleClick = (e: any) => {
-        if (checkHexagonInteraction(e)) {
-            // Désactive tous les autres boutons de détail en émettant un événement personnalisé
-            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        e.stopPropagation();
 
-            // Active le bouton de détail pour cet hexagone
+        if (!selectedTroop) {
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
             setShowDetail(true);
-            console.log(`Hexagon clicked: ${name || "Unknown"}`);
+            return;
         }
+
+        if (selectedTroop && checkHexagonInteraction(e)) {
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+            const selectedTroopObj = troops.find(t => t.id === selectedTroop);
+
+            if (selectedTroopObj?.isSquad) {
+                setShowMoveOptions(true);
+            } else {
+                startMoving(selectedTroop, { row, col });
+            }
+            return;
+        }
+
+        window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        setShowDetail(false);
+        setShowMoveOptions(false);
     };
 
     const handlePointerOver = (e: any) => {
-        setIsHovered(checkHexagonInteraction(e));
+        const interaction = checkHexagonInteraction(e);
+        setIsHovered(interaction !== false);
     };
 
     const handlePointerOut = () => {
@@ -66,10 +85,56 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
         }));
     }
 
-    // Écoute l'événement pour désactiver le bouton quand un autre hexagone est cliqué
+    const handleMoveAll = () => {
+        if (selectedTroop) {
+            startMoving(selectedTroop, { row, col });
+            setShowMoveOptions(false);
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        }
+    };
+
+    const handleSplitMove = () => {
+        setShowMoveOptions(false);
+        setShowSplitPanel(true);
+    };
+
+    const handleSplitConfirm = (splits: { [type: string]: number }) => {
+        if (selectedTroop) {
+            splitMoveTroop(selectedTroop, { row, col }, splits);
+            setShowSplitPanel(false);
+            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        }
+    };
+
+    const handleSplitCancel = () => {
+        setShowSplitPanel(false);
+    };
+
+    const getTroopTypes = () => {
+        const selectedTroopObj = troops.find(t => t.id === selectedTroop);
+        if (!selectedTroopObj) return [];
+
+        if (selectedTroopObj.isSquad && selectedTroopObj.troops) {
+            // Compter les types de troupes dans l'escouade
+            const typeCounts = selectedTroopObj.troops.reduce((acc: { [key: string]: number }, troop) => {
+                acc[troop.type] = (acc[troop.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(typeCounts).map(([type, count]) => ({
+                type,
+                count
+            }));
+        }
+
+        // Si c'est une troupe simple
+        return [{ type: selectedTroopObj.type, count: 1 }];
+    };
+
     React.useEffect(() => {
         const handleOtherHexagonClick = () => {
             setShowDetail(false);
+            setShowMoveOptions(false);
         };
 
         window.addEventListener('hexagon-clicked', handleOtherHexagonClick);
@@ -79,11 +144,22 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
         };
     }, []);
 
-    // Calculer la position du bouton au-dessus de l'hexagone
     const buttonPosition: [number, number, number] = [
-        position[0],          // Même X que l'hexagone
-        height + 1, // Y: exactement à la surface de l'hexagone
-        position[2]           // Même Z que l'hexagone
+        position[0],
+        height + 1,
+        position[2]
+    ];
+
+    const troopPosition: [number, number, number] = [
+        position[0],
+        position[1] + (height / 2),
+        position[2]
+    ];
+
+    const optionsPanelPosition: [number, number, number] = [
+        position[0],
+        height + 1.5,
+        position[2]
     ];
 
     return (
@@ -97,11 +173,27 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
             >
                 <cylinderGeometry args={[radius, radius, height, 6]} />
                 <meshStandardMaterial
-                    color={isHovered ? "#ffff00" : (color || "gray")}
-                    emissive={isHovered ? "#ffffff" : "#000000"}
-                    emissiveIntensity={isHovered ? 0.5 : 0}
+                    color={
+                        isInPath ? "#ffffff" :
+                            isHovered ? "#ffff00" : (color || "gray")
+                    }
+                    emissive={
+                        isInPath ? "#ffffff" :
+                            isHovered ? "#ffffff" : "#000000"
+                    }
+                    emissiveIntensity={
+                        isInPath ? 0.8 :
+                            isHovered ? 0.5 : 0
+                    }
                 />
             </mesh>
+
+            {troop && (
+                <TroopDisplay
+                    troop={troop}
+                    position={troopPosition}
+                />
+            )}
 
             {showDetail && (
                 <DetailButton
@@ -109,6 +201,26 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                     onClick={handleDetailClick}
                 />
             )}
+
+            {showMoveOptions && selectedTroop && (
+                <MoveOptionsPanel
+                    position={optionsPanelPosition}
+                    onMoveAll={handleMoveAll}
+                    onSplitMove={handleSplitMove}
+                    troopTypes={getTroopTypes()}
+                />
+            )}
+
+            {showSplitPanel && selectedTroop && (
+                <SplitMovePanel
+                    position={optionsPanelPosition}
+                    troopTypes={getTroopTypes()}
+                    onConfirm={handleSplitConfirm}
+                    onCancel={handleSplitCancel}
+                />
+            )}
+
+            <HexagonInteraction position={position} name={name || ''} />
         </group>
     );
 };
