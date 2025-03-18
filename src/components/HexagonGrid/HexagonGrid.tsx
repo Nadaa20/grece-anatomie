@@ -27,13 +27,26 @@ const getTerritoryFromColor = (color: [number, number, number]): string | null =
     return null;
 };
 
-interface HexagonGridProps {
-    heightmapPath: string;
-    colormapPath: string;
-    mode: "environment" | "territory";
-}
+const isAdjacentToWater = (row: number, col: number, mapWidth: number, mapHeight: number, heightmapData: Uint8ClampedArray): boolean => {
+    const directions = [
+        [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, 0]
+    ];
 
-const HexagonGrid: React.FC<HexagonGridProps> = ({
+    for (const [dRow, dCol] of directions) {
+        const newRow = row + dRow;
+        const newCol = col + dCol;
+        if (newRow >= 0 && newRow < mapHeight && newCol >= 0 && newCol < mapWidth) {
+            const index = (newRow * mapWidth + newCol) * 4;
+            const adjacentHeight = heightmapData[index];
+            if (adjacentHeight === 255) { // C'est en fonction de la heighMap, 255 c'est le blanc, et plus c'est blanc plus c'est bas (niveau de la mer)
+                return true;
+            }
+        }
+    }
+    return false;
+};
+
+const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode: "environment" | "territory" }> = ({
     heightmapPath,
     colormapPath,
     mode,
@@ -142,20 +155,33 @@ const HexagonGrid: React.FC<HexagonGridProps> = ({
                     );
                 }
             } else if (height > 0) {
-                hexName = `Sand-${territory || "Neutral"}-(${baseName})`;
-                hexagons.push(
-                    <Sand
-                        key={hexName}
-                        radius={HEX_RADIUS}
-                        height={height}
-                        position={[x, y, z]}
-                        mode={mode}
-                        territory={territory}
-                        name={hexName}
-                        row={row}
-                        col={col}
-                    />
-                );
+                if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
+                    hexName = `Sand-${territory || "Neutral"}-(${baseName})`;
+                    hexagons.push(
+                        <Sand
+                            key={hexName}
+                            radius={HEX_RADIUS}
+                            height={height}
+                            position={[x, y, z]}
+                            mode={mode}
+                            territory={territory}
+                            name={hexName}
+                        />
+                    );
+                } else {
+                    hexName = `Grass-${territory || "Neutral"}-(${baseName})`;
+                    hexagons.push(
+                        <Grass
+                            key={hexName}
+                            radius={HEX_RADIUS}
+                            height={height}
+                            position={[x, y, z]}
+                            mode={mode}
+                            territory={territory}
+                            name={hexName}
+                        />
+                    );
+                }
             } else {
                 hexName = `Water-${territory || "Neutral"}-(${baseName})`;
                 hexagons.push(

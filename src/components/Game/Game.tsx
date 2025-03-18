@@ -2,7 +2,7 @@ import React from "react";
 import { Canvas } from "@react-three/fiber";
 import Camera from "../Camera/Camera";
 import HexagonGrid from "../HexagonGrid/HexagonGrid";
-import { TroopManagerProvider } from "../Troops/TroopManager";
+import { Interface2D } from "../Interface2D/Interface2D";
 
 interface GameProps {
     mode: "environment" | "territory";
@@ -22,8 +22,9 @@ const Game: React.FC<GameProps> = ({ mode }) => {
                     colormapPath="/assets/maps/colormap.png"
                     mode={mode}
                 />
-            </TroopManagerProvider>
-        </Canvas>
+            </Canvas>
+            <Interface2D />
+        </>
     );
 };
 
