@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Parchemin } from "./Parchemin.tsx";
-import { socket } from "../../socket"; // Faudra modifier ceci quand le serveur sera fais
+//import { socket } from "../../socket"; // Faudra modifier ceci quand le serveur sera fais
 
 interface ParcheminsData {
     Batiments: { [key: string]: number };
@@ -17,18 +17,18 @@ export const Interface2D: React.FC = () => {
         const handleShowParchemin = (event: CustomEvent<{ hexagonName: string }>) => {
             setSelectedHexagon(event.detail.hexagonName);
             setShowParchemin(true);
-            socket.emit("Parchemins", event.detail.hexagonName);
+            //socket.emit("Parchemins", event.detail.hexagonName);
         };
 
-        socket.on("ParcheminsData", (data: ParcheminsData) => {
-            setParcheminsData(data);
-        });
+        //socket.on("ParcheminsData", (data: ParcheminsData) => {
+        //    setParcheminsData(data);
+        //});
 
         window.addEventListener('show-parchemin', handleShowParchemin as EventListener);
         
         return () => {
             window.removeEventListener('show-parchemin', handleShowParchemin as EventListener);
-            socket.off("ParcheminsData");
+            //socket.off("ParcheminsData");
         };
     }, []);
 
