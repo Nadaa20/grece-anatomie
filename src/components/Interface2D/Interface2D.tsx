@@ -25,7 +25,7 @@ export const Interface2D: React.FC = () => {
         //});
 
         window.addEventListener('show-parchemin', handleShowParchemin as EventListener);
-        
+
         return () => {
             window.removeEventListener('show-parchemin', handleShowParchemin as EventListener);
             //socket.off("ParcheminsData");

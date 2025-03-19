@@ -103,7 +103,7 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
             ];
             const territory = getTerritoryFromColor(rgb);
 
-            const baseName = `${col},${row}`;
+            const baseName = `${row}-${col}`;
             let hexName = "";
 
             if (height > 4) {
@@ -117,6 +117,8 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         mode={mode as "environment" | "territory"}
                         territory={territory}
                         name={hexName}
+                        row={row}
+                        col={col}
                     />
                 );
             } else if (height > 1) {
@@ -132,24 +134,11 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             mode={mode}
                             territory={territory}
                             name={hexName}
+                            row={row}
+                            col={col}
                         />
                     );
-                } else {
-                    hexName = `Grass-${territory || "Neutral"}-(${baseName})`;
-                    hexagons.push(
-                        <Grass
-                            key={hexName}
-                            radius={HEX_RADIUS}
-                            height={height}
-                            position={[x, y, z]}
-                            mode={mode}
-                            territory={territory}
-                            name={hexName}
-                        />
-                    );
-                }
-            } else if (height > 0) {
-                if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
+                } else if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
                     hexName = `Sand-${territory || "Neutral"}-(${baseName})`;
                     hexagons.push(
                         <Sand
@@ -160,6 +149,8 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             mode={mode}
                             territory={territory}
                             name={hexName}
+                            row={row}
+                            col={col}
                         />
                     );
                 } else {
@@ -173,6 +164,8 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             mode={mode}
                             territory={territory}
                             name={hexName}
+                            row={row}
+                            col={col}
                         />
                     );
                 }
@@ -187,13 +180,15 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         mode={mode}
                         territory={territory}
                         name={hexName}
+                        row={row}
+                        col={col}
                     />
                 );
             }
         }
     }
 
-    return <>{hexagons}</>;
+    return <group>{hexagons}</group>;
 };
 
 export default HexagonGrid;
