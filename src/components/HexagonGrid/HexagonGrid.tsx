@@ -5,6 +5,9 @@ import Grass from "./Grass";
 import Sand from "./Sand";
 import Stone from "./Stone";
 import Field from "./Field";
+import { useTroopManager } from '../Troops/TroopManager';
+import { useCityManager } from '../Cities/CityManager';
+import { CityObject } from '../Cities/City';
 
 const loadImageData = async (path: string): Promise<ImageData | null> => {
     const img = new Image();
@@ -56,6 +59,7 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
     const [mapWidth, setMapWidth] = useState(0);
     const [mapHeight, setMapHeight] = useState(0);
     const [fieldIndices, setFieldIndices] = useState<Set<string>>(new Set());
+    const { cities } = useCityManager();
 
     useEffect(() => {
         const loadMaps = async () => {
@@ -186,7 +190,27 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
         }
     }
 
-    return <group>{hexagons}</group>;
+    return (
+        <group>
+            {hexagons}
+            {cities.map(city => {
+                const x = city.hexCoord.col * TILE_X + (city.hexCoord.row % 2 === 0 ? 0 : TILE_X / 2);
+                const z = city.hexCoord.row * TILE_Z;
+                const index = (city.hexCoord.row * mapWidth + city.hexCoord.col) * 4;
+                const brightness = heightmapData?.[index] ?? 0;
+                const height = (1 - brightness / 255) * TILE_HEIGHT;
+                const y = height / 2;
+
+                return (
+                    <CityObject
+                        key={city.id}
+                        city={city}
+                        position={[x, y, z]}
+                    />
+                );
+            })}
+        </group>
+    );
 };
 
 export default HexagonGrid;

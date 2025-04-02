@@ -14,8 +14,15 @@ export const Interface2D: React.FC = () => {
     const [parcheminsData, setParcheminsData] = useState<ParcheminsData | null>(null);
 
     useEffect(() => {
-        const handleShowParchemin = (event: CustomEvent<{ hexagonName: string }>) => {
+        const handleShowParchemin = (event: CustomEvent<{ hexagonName: string; data?: ParcheminsData }>) => {
+            console.log("Received show-parchemin event:", event.detail);
             setSelectedHexagon(event.detail.hexagonName);
+            if (event.detail.data) {
+                console.log("Setting parchemin data:", event.detail.data);
+                setParcheminsData(event.detail.data);
+            } else {
+                console.log("No data received in event");
+            }
             setShowParchemin(true);
             //socket.emit("Parchemins", event.detail.hexagonName);
         };
