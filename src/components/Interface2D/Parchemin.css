@@ -148,7 +148,7 @@
 }
 
 /* Styles pour le contenu spécifique de chaque parchemin */
-.parchemin-content > div {
+.parchemin-content>div {
     margin-bottom: 20px;
 }
 
@@ -232,4 +232,124 @@
     color: #6d3c19;
     font-size: 0.95em;
     line-height: 1.4;
+}
+
+.batiments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ressources-display {
+    background-color: rgba(212, 166, 106, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.ressources-display h3 {
+    color: #8b4513;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.ressources-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.ressource-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(212, 166, 106, 0.2);
+    border-radius: 3px;
+}
+
+.ressource-item span:first-child {
+    font-weight: bold;
+    color: #8b4513;
+}
+
+.batiments-list h3,
+.constructible-buildings h3 {
+    color: #8b4513;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.constructible-item {
+    background-color: rgba(212, 166, 106, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+}
+
+.constructible-item.cannot-afford {
+    opacity: 0.7;
+}
+
+.building-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.building-emoji {
+    font-size: 1.5em;
+}
+
+.building-name {
+    font-weight: bold;
+    color: #8b4513;
+}
+
+.building-effect {
+    color: #6d3c19;
+    font-size: 0.9em;
+}
+
+.building-cost {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    padding: 5px 0;
+}
+
+.cost-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: rgba(139, 69, 19, 0.1);
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.build-button {
+    background-color: #8b4513;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.build-button:hover:not(:disabled) {
+    background-color: #a0522d;
+}
+
+.build-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.batiment-emoji {
+    font-size: 1.2em;
+    margin-right: 5px;
 }

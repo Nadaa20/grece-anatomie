@@ -1,49 +1,77 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Html } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { Mesh } from 'three';
 
-interface Building {
-    type: string;
+export interface Building {
+    id: string;
+    typeId: string;
     level: number;
+    constructionProgress: number;
 }
 
-interface City {
+export interface City {
+    id: string;
     name: string;
     population: number;
     buildings: Building[];
-    troops: Record<string, number>;
+    resources: {
+        wood: number;
+        stone: number;
+        iron: number;
+        marble: number;
+    };
+    position: {
+        x: number;
+        y: number;
+    };
+    hexCoord: {
+        row: number;
+        col: number;
+    };
 }
 
 interface CityObjectProps {
     city: City;
     position: [number, number, number];
+    onClick?: () => void;
 }
 
-export const CityObject: React.FC<CityObjectProps> = ({ city, position }) => {
-    const handleClick = () => {
-        console.log("City clicked:", city);
-        const buildingsData = city.buildings.reduce((acc, building) => ({
-            ...acc,
-            [building.type]: building.level
-        }), {});
-        console.log("Prepared buildings data:", buildingsData);
+export const CityObject: React.FC<CityObjectProps> = ({ city, position, onClick }) => {
+    const meshRef = useRef<Mesh>(null);
 
-        const eventData = {
-            detail: {
-                hexagonName: city.name,
-                data: {
-                    Batiments: buildingsData,
-                    Troupes: city.troops,
-                    Quetes: {}
+    // Animation simple de flottement
+    useFrame((state) => {
+        if (meshRef.current) {
+            meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime) * 0.1;
+        }
+    });
+
+    const handleClick = () => {
+        if (onClick) {
+            onClick();
+        } else {
+            const buildingsData = city.buildings.reduce((acc, building) => ({
+                ...acc,
+                [building.typeId]: (acc[building.typeId] || 0) + 1
+            }), {} as { [key: string]: number });
+
+            window.dispatchEvent(new CustomEvent('show-parchemin', {
+                detail: {
+                    hexagonName: city.name,
+                    data: {
+                        Batiments: buildingsData,
+                        Troupes: {},
+                        Quetes: {}
+                    }
                 }
-            }
-        };
-        console.log("Dispatching event with data:", eventData);
-        window.dispatchEvent(new CustomEvent('show-parchemin', eventData));
+            }));
+        }
     };
 
     return (
         <group position={position} onClick={handleClick}>
-            <mesh>
+            <mesh ref={meshRef}>
                 <boxGeometry args={[0.5, 0.5, 0.5]} />
                 <meshStandardMaterial color="brown" />
             </mesh>
@@ -54,7 +82,9 @@ export const CityObject: React.FC<CityObjectProps> = ({ city, position }) => {
                     textAlign: 'center',
                     background: 'rgba(0,0,0,0.5)',
                     padding: '2px 5px',
-                    borderRadius: '3px'
+                    borderRadius: '3px',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
                 }}>
                     {city.name}
                 </div>

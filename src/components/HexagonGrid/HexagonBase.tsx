@@ -10,6 +10,7 @@ import { Billboard, Text } from '@react-three/drei';
 import { TroopDisplay } from '../Troops/TroopDisplay';
 import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
 import { SplitMovePanel } from '../Troops/SplitMovePanel';
+import { HexagonType } from '../Cities/BuildingTypes';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -19,9 +20,10 @@ interface HexagonBaseProps {
     name?: string;
     row: number;
     col: number;
+    hexagonType: HexagonType;
 }
 
-const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col }) => {
+const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col, hexagonType }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
@@ -83,46 +85,36 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleDetailClick = () => {
         console.log(`Détail de l'hexagone ${name || "Unknown"}`);
-
-        // Préparation des données des troupes
-        let troupesData: Record<string, number> = {};
-        if (troop) {
-            if (troop.isSquad && troop.troops) {
-                // Pour une escouade, on compte le nombre de chaque type de troupe
-                troupesData = troop.troops.reduce((acc: Record<string, number>, t) => {
-                    acc[t.type] = (acc[t.type] || 0) + 1;
-                    return acc;
-                }, {});
-            } else {
-                // Pour une troupe simple
-                troupesData[troop.type] = 1;
-            }
-        }
-
-        // Fusion avec les troupes de la ville si elle existe
-        if (city?.troops) {
-            Object.entries(city.troops).forEach(([type, count]) => {
-                troupesData[type] = (troupesData[type] || 0) + count;
-            });
-        }
+        console.log("City data:", city);
 
         // Préparation des données des bâtiments
-        const batimentsData = city ? city.buildings.reduce((acc, building) => ({
-            ...acc,
-            [building.type]: building.level
-        }), {}) : {};
+        const batimentsData = city ? city.buildings.reduce((acc, building) => {
+            console.log("Building data:", building);
+            return {
+                ...acc,
+                [building.typeId]: (acc[building.typeId] || 0) + 1
+            };
+        }, {} as { [key: string]: number }) : {};
+
+        console.log("Prepared batimentsData:", batimentsData);
 
         // Envoi de l'événement avec toutes les données
-        window.dispatchEvent(new CustomEvent('show-parchemin', {
+        const eventData = {
             detail: {
                 hexagonName: city ? city.name : name || "Unknown",
+                hexagonType: city ? 'city' : hexagonType,
                 data: {
+                    hexagonName: city ? city.name : name || "Unknown",
                     Batiments: batimentsData,
-                    Troupes: troupesData,
-                    Quetes: {}
+                    Troupes: {},
+                    Quetes: {},
+                    Ressources: city ? city.resources : undefined
                 }
             }
-        }));
+        };
+        console.log("Sending event data:", eventData);
+
+        window.dispatchEvent(new CustomEvent('show-parchemin', eventData));
     }
 
     const handleMoveAll = () => {
