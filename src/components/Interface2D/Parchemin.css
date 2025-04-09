@@ -353,3 +353,31 @@
     font-size: 1.2em;
     margin-right: 5px;
 }
+
+.batiment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+}
+
+.use-button {
+    margin-left: auto;
+    padding: 4px 8px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.use-button:hover {
+    background-color: #45a049;
+}
+
+.use-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

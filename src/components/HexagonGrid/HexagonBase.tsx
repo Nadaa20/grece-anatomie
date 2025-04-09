@@ -84,38 +84,27 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     };
 
     const handleDetailClick = () => {
-        console.log(`Détail de l'hexagone ${name || "Unknown"}`);
-        console.log("City data:", city);
+        const batimentsData = city?.buildings.reduce((acc, building) => ({
+            ...acc,
+            [building.typeId]: (acc[building.typeId] || 0) + 1
+        }), {} as { [key: string]: number }) || {};
 
-        // Préparation des données des bâtiments
-        const batimentsData = city ? city.buildings.reduce((acc, building) => {
-            console.log("Building data:", building);
-            return {
-                ...acc,
-                [building.typeId]: (acc[building.typeId] || 0) + 1
-            };
-        }, {} as { [key: string]: number }) : {};
-
-        console.log("Prepared batimentsData:", batimentsData);
-
-        // Envoi de l'événement avec toutes les données
-        const eventData = {
+        const parcheminData = {
             detail: {
-                hexagonName: city ? city.name : name || "Unknown",
+                hexagonName: city?.name || name || "Unknown",
                 hexagonType: city ? 'city' : hexagonType,
                 data: {
-                    hexagonName: city ? city.name : name || "Unknown",
+                    hexagonName: city?.name || name || "Unknown",
                     Batiments: batimentsData,
                     Troupes: {},
                     Quetes: {},
-                    Ressources: city ? city.resources : undefined
+                    Ressources: city?.resources
                 }
             }
         };
-        console.log("Sending event data:", eventData);
 
-        window.dispatchEvent(new CustomEvent('show-parchemin', eventData));
-    }
+        window.dispatchEvent(new CustomEvent('show-parchemin', parcheminData));
+    };
 
     const handleMoveAll = () => {
         if (selectedTroop) {

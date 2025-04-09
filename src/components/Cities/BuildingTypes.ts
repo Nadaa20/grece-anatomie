@@ -16,6 +16,7 @@ export interface BuildingType {
     };
     isStarting: boolean;
     buildableOn: HexagonType[];
+    isActive: boolean;
 }
 
 export const BUILDING_TYPES: BuildingType[] = [
@@ -27,7 +28,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Défense de base de la ville',
         cost: { wood: 0, stone: 0, iron: 0, marble: 0 },
         isStarting: true,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: false
     },
     {
         id: 'well',
@@ -37,7 +39,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Accès à l\'eau pour les citoyens (hygiène, santé)',
         cost: { wood: 0, stone: 0, iron: 0, marble: 0 },
         isStarting: true,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: false
     },
     {
         id: 'house',
@@ -47,7 +50,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Augmente la capacité de population',
         cost: { wood: 10, stone: 5, iron: 0, marble: 0 },
         isStarting: false,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: false
     },
     {
         id: 'lumbermill',
@@ -57,7 +61,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: '+5 bois par tour',
         cost: { wood: 50, stone: 20, iron: 10, marble: 0 },
         isStarting: false,
-        buildableOn: ['forest']
+        buildableOn: ['forest'],
+        isActive: false
     },
     {
         id: 'quarry',
@@ -67,7 +72,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: '+5 pierre par tour',
         cost: { wood: 30, stone: 40, iron: 15, marble: 0 },
         isStarting: false,
-        buildableOn: ['mine', 'mountain']
+        buildableOn: ['mine', 'mountain'],
+        isActive: false
     },
     {
         id: 'ironmine',
@@ -77,7 +83,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: '+5 fer par tour',
         cost: { wood: 40, stone: 30, iron: 20, marble: 0 },
         isStarting: false,
-        buildableOn: ['mine', 'mountain']
+        buildableOn: ['mine', 'mountain'],
+        isActive: false
     },
     {
         id: 'marblequarry',
@@ -87,7 +94,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: '+2 marbre par tour',
         cost: { wood: 60, stone: 50, iron: 30, marble: 0 },
         isStarting: false,
-        buildableOn: ['mine', 'mountain']
+        buildableOn: ['mine', 'mountain'],
+        isActive: false
     },
     {
         id: 'barracks',
@@ -97,7 +105,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Permet de former des troupes',
         cost: { wood: 100, stone: 80, iron: 50, marble: 20 },
         isStarting: false,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: true
     },
     {
         id: 'temple',
@@ -107,7 +116,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: '+10% de production',
         cost: { wood: 80, stone: 120, iron: 40, marble: 50 },
         isStarting: false,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: false
     },
     {
         id: 'market',
@@ -117,7 +127,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Permet d\'échanger des ressources',
         cost: { wood: 70, stone: 60, iron: 30, marble: 20 },
         isStarting: false,
-        buildableOn: ['city']
+        buildableOn: ['city'],
+        isActive: false
     },
     {
         id: 'port',
@@ -127,6 +138,7 @@ export const BUILDING_TYPES: BuildingType[] = [
         effect: 'Permet de construire des navires',
         cost: { wood: 150, stone: 100, iron: 60, marble: 30 },
         isStarting: false,
-        buildableOn: ['city', 'water']
+        buildableOn: ['city', 'water'],
+        isActive: false
     }
 ]; 
