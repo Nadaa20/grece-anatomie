@@ -140,7 +140,6 @@ export const Interface2D: React.FC<{ mode: "environment" | "territory" }> = ({ m
         // Créer le fichier JSON
         const jsonData = {
             turn: new Date().toISOString(),
-            mode,
             hexagons: hexagonsData
         };
 
