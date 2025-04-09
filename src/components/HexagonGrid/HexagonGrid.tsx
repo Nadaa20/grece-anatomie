@@ -8,6 +8,7 @@ import Field from "./Field";
 import { useTroopManager } from '../Troops/TroopManager';
 import { useCityManager } from '../Cities/CityManager';
 import { CityObject } from '../Cities/City';
+import { useHeightmap } from '../../hooks/useHeightmap';
 
 const loadImageData = async (path: string): Promise<ImageData | null> => {
     const img = new Image();
@@ -54,29 +55,21 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
     colormapPath,
     mode,
 }) => {
-    const [heightmapData, setHeightmapData] = useState<Uint8ClampedArray | null>(null);
     const [colormapData, setColormapData] = useState<Uint8ClampedArray | null>(null);
-    const [mapWidth, setMapWidth] = useState(0);
-    const [mapHeight, setMapHeight] = useState(0);
     const [fieldIndices, setFieldIndices] = useState<Set<string>>(new Set());
     const { cities } = useCityManager();
+    const { heightmapData, mapWidth, mapHeight, getHeight } = useHeightmap(heightmapPath);
 
     useEffect(() => {
-        const loadMaps = async () => {
-            const [heightmap, colormap] = await Promise.all([
-                loadImageData(heightmapPath),
-                loadImageData(colormapPath),
-            ]);
-            if (heightmap && colormap) {
-                setHeightmapData(heightmap.data);
+        const loadColormap = async () => {
+            const colormap = await loadImageData(colormapPath);
+            if (colormap) {
                 setColormapData(colormap.data);
-                setMapWidth(heightmap.width);
-                setMapHeight(heightmap.height);
-                generateRandomFields(heightmap.width, heightmap.height);
+                generateRandomFields(colormap.width, colormap.height);
             }
         };
-        loadMaps();
-    }, [heightmapPath, colormapPath]);
+        loadColormap();
+    }, [colormapPath]);
 
     const generateRandomFields = (width: number, height: number) => {
         const numberOfFields = Math.floor(width * height * 0.01);
@@ -92,18 +85,17 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
     const hexagons = [];
     for (let row = 0; row < mapHeight; row++) {
         for (let col = 0; col < mapWidth; col++) {
-            const index = (row * mapWidth + col) * 4;
-            const brightness = heightmapData[index];
-            const height = (1 - brightness / 255) * TILE_HEIGHT;
+            const height = getHeight(row, col);
 
             const x = col * TILE_X + (row % 2 === 0 ? 0 : TILE_X / 2);
             const z = row * TILE_Z;
             const y = height / 2;
 
+            const colorIndex = (row * mapWidth + col) * 4;
             const rgb: [number, number, number] = [
-                colormapData[index],
-                colormapData[index + 1],
-                colormapData[index + 2],
+                colormapData[colorIndex],
+                colormapData[colorIndex + 1],
+                colormapData[colorIndex + 2],
             ];
             const territory = getTerritoryFromColor(rgb);
 
@@ -196,9 +188,7 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
             {cities.map(city => {
                 const x = city.hexCoord.col * TILE_X + (city.hexCoord.row % 2 === 0 ? 0 : TILE_X / 2);
                 const z = city.hexCoord.row * TILE_Z;
-                const index = (city.hexCoord.row * mapWidth + city.hexCoord.col) * 4;
-                const brightness = heightmapData?.[index] ?? 0;
-                const height = (1 - brightness / 255) * TILE_HEIGHT;
+                const height = getHeight(city.hexCoord.row, city.hexCoord.col);
                 const y = height / 2;
 
                 return (
