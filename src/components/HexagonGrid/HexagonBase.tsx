@@ -98,7 +98,11 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                     Batiments: batimentsData,
                     Troupes: {},
                     Quetes: {},
-                    Ressources: city?.resources
+                    Ressources: city?.resources ? {
+                        ...city.resources,
+                        population_max: 5 + (batimentsData['house'] || 0) * 3,
+                        population_actuelle: 5 + (batimentsData['house'] || 0) * 3
+                    } : undefined
                 }
             }
         };

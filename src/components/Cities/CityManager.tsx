@@ -5,7 +5,7 @@ import { BUILDING_TYPES } from './BuildingTypes';
 const initialCity: City = {
     id: 'athens',
     name: 'Athènes',
-    population: 1000,
+    population: 0,
     position: { x: 0, y: 1 },
     hexCoord: { row: 1, col: 0 },
     buildings: [

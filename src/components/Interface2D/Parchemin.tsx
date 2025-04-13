@@ -11,6 +11,8 @@ interface ParcheminsData {
         stone: number;
         iron: number;
         marble: number;
+        population_actuelle: number;
+        population_max: number;
     };
     hexagonName: string;
 }
@@ -60,11 +62,19 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                     <div className="ressources-display">
                         <h3>Ressources disponibles</h3>
                         <div className="ressources-grid">
-                            {Object.entries(data.Ressources || {}).map(([resource, amount]) => (
-                                <div key={resource} className="ressource-item">
-                                    <span>{resource === 'wood' ? '🪵' : resource === 'stone' ? '🪨' : resource === 'iron' ? '⚒️' : '🏛️'} {resource}:</span>
-                                    <span>{amount}</span>
+                            {data.Ressources?.population_actuelle !== undefined && (
+                                <div className="ressource-item">
+                                    <span>👥 Population:</span>
+                                    <span>{data.Ressources.population_actuelle}/{data.Ressources.population_max}</span>
                                 </div>
+                            )}
+                            {Object.entries(data.Ressources || {}).map(([resource, amount]) => (
+                                !['population_actuelle', 'population_max'].includes(resource) && (
+                                    <div key={resource} className="ressource-item">
+                                        <span>{resource === 'wood' ? '🪵' : resource === 'stone' ? '🪨' : resource === 'iron' ? '⚒️' : '🏛️'} {resource}:</span>
+                                        <span>{amount}</span>
+                                    </div>
+                                )
                             ))}
                         </div>
                     </div>
@@ -173,25 +183,52 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
                 const building = BUILDING_TYPES.find(b => b.id === event.detail.buildingId);
                 if (!building || !prevData.Ressources) return prevData;
 
+                const newBatiments = {
+                    ...prevData.Batiments,
+                    [event.detail.buildingId]: (prevData.Batiments[event.detail.buildingId] || 0) + 1
+                };
+
                 return {
                     ...prevData,
-                    Batiments: {
-                        ...prevData.Batiments,
-                        [event.detail.buildingId]: (prevData.Batiments[event.detail.buildingId] || 0) + 1
-                    },
+                    Batiments: newBatiments,
                     Ressources: {
                         ...prevData.Ressources,
                         wood: prevData.Ressources.wood - building.cost.wood,
                         stone: prevData.Ressources.stone - building.cost.stone,
                         iron: prevData.Ressources.iron - building.cost.iron,
-                        marble: prevData.Ressources.marble - building.cost.marble
+                        marble: prevData.Ressources.marble - building.cost.marble,
+                        population_max: 5 + (newBatiments['house'] || 0) * 3
                     }
                 };
             });
         };
 
+        // Système de croissance de la population
+        const populationGrowthInterval = setInterval(() => {
+            setLocalData(prevData => {
+                if (!prevData || !prevData.Ressources) return prevData;
+
+                const currentPopulation = prevData.Ressources.population_actuelle;
+                const maxPopulation = prevData.Ressources.population_max;
+
+                if (currentPopulation < maxPopulation) {
+                    return {
+                        ...prevData,
+                        Ressources: {
+                            ...prevData.Ressources,
+                            population_actuelle: Math.min(currentPopulation + 1, maxPopulation)
+                        }
+                    };
+                }
+                return prevData;
+            });
+        }, 5000); // La population augmente de 1 toutes les 5 secondes
+
         window.addEventListener('building-constructed', handleBuildingConstructed as EventListener);
-        return () => window.removeEventListener('building-constructed', handleBuildingConstructed as EventListener);
+        return () => {
+            window.removeEventListener('building-constructed', handleBuildingConstructed as EventListener);
+            clearInterval(populationGrowthInterval);
+        };
     }, [localData]);
 
     if (!localData) return null;
