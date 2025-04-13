@@ -1,0 +1,158 @@
+.troop-training-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+}
+
+.troop-training-modal {
+    background-image: url('/textures/parchemin.jpg');
+    background-size: cover;
+    padding: 20px;
+    border-radius: 10px;
+    width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: #4a2810;
+    position: relative;
+}
+
+.close-modal-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #4a2810;
+}
+
+.troop-training-modal h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #8b4513;
+}
+
+.available-resources {
+    background-color: rgba(212, 166, 106, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.available-resources h3 {
+    color: #8b4513;
+    margin-bottom: 10px;
+}
+
+.resources-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.resource-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(212, 166, 106, 0.2);
+    border-radius: 3px;
+}
+
+.troop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.troop-item {
+    background-color: rgba(212, 166, 106, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.troop-item.cannot-train {
+    opacity: 0.7;
+}
+
+.troop-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex: 1;
+}
+
+.troop-emoji {
+    font-size: 2em;
+}
+
+.troop-details h4 {
+    color: #8b4513;
+    margin-bottom: 5px;
+}
+
+.troop-details p {
+    font-size: 0.9em;
+    color: #6d3c19;
+    margin-bottom: 8px;
+}
+
+.troop-stats {
+    display: flex;
+    gap: 15px;
+}
+
+.troop-stats span {
+    background-color: rgba(139, 69, 19, 0.1);
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.troop-cost {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.cost-items {
+    display: flex;
+    gap: 10px;
+}
+
+.cost-items span {
+    background-color: rgba(139, 69, 19, 0.1);
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.train-button {
+    background-color: #8b4513;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.train-button:hover:not(:disabled) {
+    background-color: #a0522d;
+}
+
+.train-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+} 

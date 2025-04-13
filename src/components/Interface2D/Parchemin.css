@@ -381,3 +381,115 @@
     background-color: #cccccc;
     cursor: not-allowed;
 }
+
+.use-building-button {
+    background-color: #4a5568;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+    font-size: 0.9em;
+}
+
+.use-building-button:hover {
+    background-color: #2d3748;
+}
+
+.use-building-button:disabled {
+    background-color: #718096;
+    cursor: not-allowed;
+}
+
+.troupe-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+    transition: all 0.3s ease;
+}
+
+.troupe-item.selected {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid #4CAF50;
+}
+
+.selected-count {
+    margin-left: 10px;
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.troupe-emoji {
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.troupe-nom {
+    flex-grow: 1;
+}
+
+.troupe-quantite {
+    margin-right: 10px;
+}
+
+.troop-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.troop-button {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.troop-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.troop-button:first-child {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #45a049;
+}
+
+.troop-button:first-child:hover:not(:disabled) {
+    background-color: #45a049;
+}
+
+.troop-button:last-child {
+    background-color: #f44336;
+    color: white;
+    border-color: #d32f2f;
+}
+
+.troop-button:last-child:hover:not(:disabled) {
+    background-color: #d32f2f;
+}
+
+.troupes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.squad-info {
+    background-color: rgba(212, 166, 106, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 3px solid #d4a66a;
+    color: #8b4513;
+    font-style: italic;
+    margin-bottom: 10px;
+}

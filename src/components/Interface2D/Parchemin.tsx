@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Parchemin.css';
 import { BUILDING_TYPES, BuildingType, HexagonType } from '../Cities/BuildingTypes';
+import { TroopTrainingModal } from './TroopTrainingModal';
+import { TROOP_TYPES } from './TroopTypes';
 
 interface ParcheminsData {
     Batiments: { [key: string]: number };
@@ -29,7 +31,43 @@ interface ParcheminProps {
 const tabs = ['Batiments', 'Troupes', 'Quetes'] as const;
 type TabType = typeof tabs[number];
 
+const getTotalPopulationUsed = (data: ParcheminsData): number => {
+    const totalWorkers = Object.values(data.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0);
+    const totalTroops = Object.entries(data.Troupes).reduce((sum, [troopId, quantity]) => {
+        const troopType = TROOP_TYPES.find(t => t.id === troopId);
+        return sum + (quantity * (troopType?.cost.population || 0));
+    }, 0);
+    return totalWorkers + totalTroops;
+};
+
 const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: HexagonType }> = ({ type, data, hexagonType }) => {
+    const [selectedTroops, setSelectedTroops] = useState<{ [key: string]: number }>({});
+
+    const handleTroopSelect = (troopId: string, increment: number) => {
+        setSelectedTroops(prev => {
+            const currentCount = prev[troopId] || 0;
+            const availableCount = data.Troupes[troopId] || 0;
+            const newCount = Math.max(0, Math.min(availableCount, currentCount + increment));
+
+            if (newCount === 0) {
+                const { [troopId]: _, ...rest } = prev;
+                return rest;
+            }
+            return { ...prev, [troopId]: newCount };
+        });
+    };
+
+    const getSquadText = () => {
+        const troopEntries = Object.entries(selectedTroops);
+        if (troopEntries.length === 0) {
+            return "Pas d'escouade en cours de composition";
+        }
+        return `Escouade actuelle composée de : ${troopEntries.map(([troopId, count]) => {
+            const troopType = TROOP_TYPES.find(t => t.id === troopId);
+            return `${count} ${troopType?.name}`;
+        }).join(', ')}`;
+    };
+
     const canAffordBuilding = (building: BuildingType): boolean => {
         if (!data.Ressources) return false;
         return Object.entries(building.cost).every(
@@ -50,6 +88,14 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
     };
 
     const handleUseBuilding = (building: BuildingType) => {
+        if (!building.isActive) return;
+
+        const currentWorkers = data.Travailleurs?.[building.id] || 0;
+        const requiredWorkers = building.requiredWorkers * (data.Batiments[building.id] || 0);
+
+        // Vérifie si le bâtiment a tous ses travailleurs requis
+        if (currentWorkers < requiredWorkers) return;
+
         window.dispatchEvent(new CustomEvent('use-building', {
             detail: {
                 buildingId: building.id,
@@ -60,23 +106,21 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
 
     const canAssignWorker = () => {
         if (!data.Ressources) return false;
-        const totalWorkers = Object.values(data.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0);
-        const availablePopulation = data.Ressources.population_actuelle - totalWorkers;
-        return availablePopulation > 0;
+        const totalPopulationUsed = getTotalPopulationUsed(data);
+        return data.Ressources.population_actuelle > totalPopulationUsed;
     };
 
     const handleAssignWorker = (buildingId: string, increment: number) => {
         if (!data.Ressources) return;
 
-        const totalWorkers = Object.values(data.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0);
+        const totalPopulationUsed = getTotalPopulationUsed(data);
         const building = BUILDING_TYPES.find(b => b.id === buildingId);
         if (!building) return;
 
         const currentWorkers = data.Travailleurs?.[buildingId] || 0;
         const newWorkers = currentWorkers + increment;
-        const availablePopulation = data.Ressources.population_actuelle - totalWorkers;
 
-        if (increment > 0 && availablePopulation <= 0) return;
+        if (increment > 0 && data.Ressources.population_actuelle <= totalPopulationUsed) return;
         if (newWorkers < 0) return;
         if (newWorkers > building.requiredWorkers * (data.Batiments[buildingId] || 0)) return;
 
@@ -102,10 +146,10 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                     <div className="ressources-display">
                         <h3>Ressources disponibles</h3>
                         <div className="ressources-grid">
-                            {data.Ressources?.population_actuelle !== undefined && data.Travailleurs && (
+                            {data.Ressources?.population_actuelle !== undefined && (
                                 <div className="ressource-item">
                                     <span>👥 Population disponible:</span>
-                                    <span>{data.Ressources.population_actuelle - Object.values(data.Travailleurs).reduce((sum, workers) => sum + workers, 0)}/{data.Ressources.population_max}</span>
+                                    <span>{data.Ressources.population_actuelle - getTotalPopulationUsed(data)}/{data.Ressources.population_max}</span>
                                 </div>
                             )}
                             {Object.entries(data.Ressources || {}).map(([resource, amount]) => (
@@ -150,6 +194,14 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                                             >
                                                 -
                                             </button>
+                                            {buildingType.id === 'barracks' && currentWorkers === requiredWorkers && (
+                                                <button
+                                                    className="use-building-button"
+                                                    onClick={() => handleUseBuilding(buildingType)}
+                                                >
+                                                    Former des troupes
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -196,13 +248,43 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
             return Object.keys(data.Troupes).length === 0 ? (
                 <p>Aucune troupe présente sur cette case</p>
             ) : (
-                <div className="troupes-list">
-                    {Object.entries(data.Troupes).map(([troupe, quantite]) => (
-                        <div key={troupe} className="troupe-item">
-                            <span className="troupe-nom">{troupe}</span>
-                            <span className="troupe-quantite">x{quantite}</span>
-                        </div>
-                    ))}
+                <div className="troupes-container">
+                    <div className="squad-info">
+                        {getSquadText()}
+                    </div>
+                    <div className="troupes-list">
+                        {Object.entries(data.Troupes).map(([troopId, quantity]) => {
+                            const troopType = TROOP_TYPES.find(t => t.id === troopId);
+                            const selectedCount = selectedTroops[troopId] || 0;
+                            const canAddMore = selectedCount < quantity;
+                            return (
+                                <div key={troopId} className={`troupe-item ${selectedCount > 0 ? 'selected' : ''}`}>
+                                    <span className="troupe-emoji">{troopType?.emoji}</span>
+                                    <span className="troupe-nom">{troopType?.name}</span>
+                                    <span className="troupe-quantite">x{quantity}</span>
+                                    <div className="troop-controls">
+                                        <button
+                                            className="troop-button"
+                                            onClick={() => handleTroopSelect(troopId, 1)}
+                                            disabled={!canAddMore}
+                                        >
+                                            +
+                                        </button>
+                                        <button
+                                            className="troop-button"
+                                            onClick={() => handleTroopSelect(troopId, -1)}
+                                            disabled={selectedCount <= 0}
+                                        >
+                                            -
+                                        </button>
+                                    </div>
+                                    {selectedCount > 0 && (
+                                        <span className="selected-count">({selectedCount})</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             );
         case 'Quetes':
@@ -225,6 +307,7 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
     const [activeTab, setActiveTab] = useState<TabType>('Batiments');
     const [localData, setLocalData] = useState<ParcheminsData | null>(data);
     const localDataRef = useRef<ParcheminsData | null>(data);
+    const [showTroopTrainingModal, setShowTroopTrainingModal] = useState(false);
 
     useEffect(() => {
         setLocalData(data);
@@ -309,6 +392,53 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
             });
         };
 
+        const handleTrainTroop = (event: CustomEvent<{ hexagonName: string; troopId: string }>) => {
+            if (localDataRef.current?.hexagonName !== event.detail.hexagonName) return;
+
+            setLocalData(prevData => {
+                if (!prevData || !prevData.Ressources) return prevData;
+
+                const troopType = TROOP_TYPES.find(t => t.id === event.detail.troopId);
+                if (!troopType) return prevData;
+
+                // Vérifier si on a assez de ressources
+                const hasEnoughResources = Object.entries(troopType.cost).every(([resource, cost]) => {
+                    if (resource === 'population') {
+                        const totalPopulationUsed = getTotalPopulationUsed(prevData);
+                        return prevData.Ressources!.population_actuelle - totalPopulationUsed >= 1;
+                    }
+                    return (prevData.Ressources as any)[resource] >= (cost || 0);
+                });
+
+                if (!hasEnoughResources) return prevData;
+
+                // Mettre à jour les ressources et ajouter la troupe
+                const newData = {
+                    ...prevData,
+                    Ressources: {
+                        ...prevData.Ressources,
+                        wood: prevData.Ressources.wood - (troopType.cost.wood || 0),
+                        stone: prevData.Ressources.stone - (troopType.cost.stone || 0),
+                        iron: prevData.Ressources.iron - (troopType.cost.iron || 0),
+                        marble: prevData.Ressources.marble - (troopType.cost.marble || 0)
+                    },
+                    Troupes: {
+                        ...prevData.Troupes,
+                        [event.detail.troopId]: (prevData.Troupes[event.detail.troopId] || 0) + 1
+                    }
+                };
+
+                localDataRef.current = newData;
+                return newData;
+            });
+        };
+
+        const handleUseBuilding = (event: CustomEvent<{ hexagonName: string; buildingId: string }>) => {
+            if (event.detail.buildingId === 'barracks') {
+                setShowTroopTrainingModal(true);
+            }
+        };
+
         // Système de croissance de la population
         const populationGrowthInterval = setInterval(() => {
             setLocalData(prevData => {
@@ -334,40 +464,69 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
 
         window.addEventListener('building-constructed', handleBuildingConstructed as EventListener);
         window.addEventListener('assign-worker', handleAssignWorker as EventListener);
+        window.addEventListener('train-troop', handleTrainTroop as EventListener);
+        window.addEventListener('use-building', handleUseBuilding as EventListener);
+
         return () => {
             window.removeEventListener('building-constructed', handleBuildingConstructed as EventListener);
             window.removeEventListener('assign-worker', handleAssignWorker as EventListener);
+            window.removeEventListener('train-troop', handleTrainTroop as EventListener);
+            window.removeEventListener('use-building', handleUseBuilding as EventListener);
             clearInterval(populationGrowthInterval);
         };
     }, []);
 
+    const handleTrainTroop = (troopId: string) => {
+        window.dispatchEvent(new CustomEvent('train-troop', {
+            detail: {
+                troopId,
+                hexagonName: localData?.hexagonName
+            }
+        }));
+        setShowTroopTrainingModal(false);
+    };
+
     if (!localData) return null;
 
     return (
-        <div className="parchemins-container">
-            {tabs.map((tab) => (
-                <div
-                    key={tab}
-                    className={`parchemin ${tab === activeTab ? 'active' : ''}`}
-                    style={{
-                        zIndex: tab === activeTab ? 30 : 20 - tabs.indexOf(tab),
-                        transform: `translate(${tabs.indexOf(tab) * 20}px, ${-tabs.indexOf(tab) * 20}px)`,
-                    }}
-                >
+        <>
+            <div className="parchemins-container">
+                {tabs.map((tab) => (
                     <div
-                        className={`marque-page marque-page-${tab.toLowerCase()}`}
-                        onClick={() => setActiveTab(tab)}
+                        key={tab}
+                        className={`parchemin ${tab === activeTab ? 'active' : ''}`}
+                        style={{
+                            zIndex: tab === activeTab ? 30 : 20 - tabs.indexOf(tab),
+                            transform: `translate(${tabs.indexOf(tab) * 20}px, ${-tabs.indexOf(tab) * 20}px)`,
+                        }}
                     >
-                        {tab}
+                        <div
+                            className={`marque-page marque-page-${tab.toLowerCase()}`}
+                            onClick={() => setActiveTab(tab)}
+                        >
+                            {tab}
+                        </div>
+                        <button className="close-button" onClick={onClose}>×</button>
+                        <div className="parchemin-content">
+                            <h2>{tab}</h2>
+                            <TabContent type={tab} data={localData} hexagonType={hexagonType} />
+                        </div>
                     </div>
-                    <button className="close-button" onClick={onClose}>×</button>
-                    <div className="parchemin-content">
-                        <h2>{tab}</h2>
-                        <TabContent type={tab} data={localData} hexagonType={hexagonType} />
-                    </div>
-                </div>
-            ))}
-        </div>
+                ))}
+            </div>
+            {showTroopTrainingModal && localData.Ressources && (
+                <TroopTrainingModal
+                    onClose={() => setShowTroopTrainingModal(false)}
+                    onTrainTroop={handleTrainTroop}
+                    resources={localData.Ressources}
+                    currentWorkers={Object.values(localData.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0)}
+                    totalTroops={Object.entries(localData.Troupes).reduce((sum, [troopId, quantity]) => {
+                        const troopType = TROOP_TYPES.find(t => t.id === troopId);
+                        return sum + (quantity * (troopType?.cost.population || 0));
+                    }, 0)}
+                />
+            )}
+        </>
     );
 };
 

@@ -91,7 +91,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
         const parcheminData = {
             detail: {
-                hexagonName: city?.name || name || "Unknown",
+                hexagonName: name || "Unknown",
                 hexagonType: city ? 'city' : hexagonType,
                 data: {
                     hexagonName: city?.name || name || "Unknown",
