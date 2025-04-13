@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Parchemin.css';
 import { BUILDING_TYPES, BuildingType, HexagonType } from '../Cities/BuildingTypes';
 
@@ -13,6 +13,9 @@ interface ParcheminsData {
         marble: number;
         population_actuelle: number;
         population_max: number;
+    };
+    Travailleurs?: {
+        [key: string]: number;
     };
     hexagonName: string;
 }
@@ -55,6 +58,43 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
         }));
     };
 
+    const canAssignWorker = () => {
+        if (!data.Ressources) return false;
+        const totalWorkers = Object.values(data.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0);
+        const availablePopulation = data.Ressources.population_actuelle - totalWorkers;
+        return availablePopulation > 0;
+    };
+
+    const handleAssignWorker = (buildingId: string, increment: number) => {
+        if (!data.Ressources) return;
+
+        const totalWorkers = Object.values(data.Travailleurs || {}).reduce((sum, workers) => sum + workers, 0);
+        const building = BUILDING_TYPES.find(b => b.id === buildingId);
+        if (!building) return;
+
+        const currentWorkers = data.Travailleurs?.[buildingId] || 0;
+        const newWorkers = currentWorkers + increment;
+        const availablePopulation = data.Ressources.population_actuelle - totalWorkers;
+
+        if (increment > 0 && availablePopulation <= 0) return;
+        if (newWorkers < 0) return;
+        if (newWorkers > building.requiredWorkers * (data.Batiments[buildingId] || 0)) return;
+
+        console.log('Dispatching assign-worker event:', {
+            buildingId,
+            increment,
+            hexagonName: data.hexagonName
+        });
+
+        window.dispatchEvent(new CustomEvent('assign-worker', {
+            detail: {
+                buildingId,
+                increment,
+                hexagonName: data.hexagonName
+            }
+        }));
+    };
+
     switch (type) {
         case 'Batiments':
             return (
@@ -62,10 +102,10 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                     <div className="ressources-display">
                         <h3>Ressources disponibles</h3>
                         <div className="ressources-grid">
-                            {data.Ressources?.population_actuelle !== undefined && (
+                            {data.Ressources?.population_actuelle !== undefined && data.Travailleurs && (
                                 <div className="ressource-item">
-                                    <span>👥 Population:</span>
-                                    <span>{data.Ressources.population_actuelle}/{data.Ressources.population_max}</span>
+                                    <span>👥 Population disponible:</span>
+                                    <span>{data.Ressources.population_actuelle - Object.values(data.Travailleurs).reduce((sum, workers) => sum + workers, 0)}/{data.Ressources.population_max}</span>
                                 </div>
                             )}
                             {Object.entries(data.Ressources || {}).map(([resource, amount]) => (
@@ -84,18 +124,33 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                         {Object.entries(data.Batiments).map(([batiment, quantite]) => {
                             const buildingType = BUILDING_TYPES.find(b => b.id === batiment);
                             if (!buildingType) return null;
+                            const currentWorkers = data.Travailleurs?.[batiment] || 0;
+                            const requiredWorkers = buildingType.requiredWorkers * quantite;
                             return (
                                 <div key={batiment} className="batiment-item">
                                     <span className="batiment-emoji">{buildingType.emoji}</span>
                                     <span className="batiment-nom">{buildingType.name}</span>
                                     <span className="batiment-quantite">x{quantite}</span>
                                     {buildingType.isActive && (
-                                        <button
-                                            className="use-button"
-                                            onClick={() => handleUseBuilding(buildingType)}
-                                        >
-                                            Utiliser
-                                        </button>
+                                        <div className="workers-control">
+                                            <span className="workers-info">
+                                                {currentWorkers}/{requiredWorkers} travailleurs
+                                            </span>
+                                            <button
+                                                className="assign-worker-button"
+                                                onClick={() => handleAssignWorker(batiment, 1)}
+                                                disabled={!canAssignWorker()}
+                                            >
+                                                +
+                                            </button>
+                                            <button
+                                                className="remove-worker-button"
+                                                onClick={() => handleAssignWorker(batiment, -1)}
+                                                disabled={currentWorkers <= 0}
+                                            >
+                                                -
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             );
@@ -169,14 +224,16 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
 export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType }) => {
     const [activeTab, setActiveTab] = useState<TabType>('Batiments');
     const [localData, setLocalData] = useState<ParcheminsData | null>(data);
+    const localDataRef = useRef<ParcheminsData | null>(data);
 
     useEffect(() => {
         setLocalData(data);
+        localDataRef.current = data;
     }, [data]);
 
     useEffect(() => {
         const handleBuildingConstructed = (event: CustomEvent<{ cityName: string; buildingId: string }>) => {
-            if (localData?.hexagonName !== event.detail.cityName) return;
+            if (localDataRef.current?.hexagonName !== event.detail.cityName) return;
 
             setLocalData(prevData => {
                 if (!prevData) return null;
@@ -188,7 +245,7 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
                     [event.detail.buildingId]: (prevData.Batiments[event.detail.buildingId] || 0) + 1
                 };
 
-                return {
+                const newData = {
                     ...prevData,
                     Batiments: newBatiments,
                     Ressources: {
@@ -198,8 +255,57 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
                         iron: prevData.Ressources.iron - building.cost.iron,
                         marble: prevData.Ressources.marble - building.cost.marble,
                         population_max: 5 + (newBatiments['house'] || 0) * 3
+                    },
+                    Travailleurs: {
+                        ...prevData.Travailleurs,
+                        [event.detail.buildingId]: 0
                     }
                 };
+                localDataRef.current = newData;
+                return newData;
+            });
+        };
+
+        const handleAssignWorker = (event: CustomEvent<{ hexagonName: string; buildingId: string; increment: number }>) => {
+            console.log('Received assign-worker event:', event.detail);
+            console.log('Current localData:', localDataRef.current);
+
+            if (localDataRef.current?.hexagonName !== event.detail.hexagonName) {
+                console.log('Hexagon name mismatch:', localDataRef.current?.hexagonName, event.detail.hexagonName);
+                return;
+            }
+
+            setLocalData(prevData => {
+                if (!prevData || !prevData.Ressources || !prevData.Travailleurs) {
+                    console.log('Missing required data');
+                    return prevData;
+                }
+
+                const building = BUILDING_TYPES.find(b => b.id === event.detail.buildingId);
+                if (!building) {
+                    console.log('Building not found:', event.detail.buildingId);
+                    return prevData;
+                }
+
+                const currentWorkers = prevData.Travailleurs[event.detail.buildingId] || 0;
+                const newWorkers = Math.max(0, currentWorkers + event.detail.increment);
+                const requiredWorkers = building.requiredWorkers * (prevData.Batiments[event.detail.buildingId] || 0);
+
+                if (newWorkers > requiredWorkers) {
+                    console.log('Too many workers:', newWorkers, requiredWorkers);
+                    return prevData;
+                }
+
+                const newData = {
+                    ...prevData,
+                    Travailleurs: {
+                        ...prevData.Travailleurs,
+                        [event.detail.buildingId]: newWorkers
+                    }
+                };
+                console.log('Updating workers:', newData.Travailleurs);
+                localDataRef.current = newData;
+                return newData;
             });
         };
 
@@ -212,24 +318,28 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
                 const maxPopulation = prevData.Ressources.population_max;
 
                 if (currentPopulation < maxPopulation) {
-                    return {
+                    const newData = {
                         ...prevData,
                         Ressources: {
                             ...prevData.Ressources,
                             population_actuelle: Math.min(currentPopulation + 1, maxPopulation)
                         }
                     };
+                    localDataRef.current = newData;
+                    return newData;
                 }
                 return prevData;
             });
         }, 5000); // La population augmente de 1 toutes les 5 secondes
 
         window.addEventListener('building-constructed', handleBuildingConstructed as EventListener);
+        window.addEventListener('assign-worker', handleAssignWorker as EventListener);
         return () => {
             window.removeEventListener('building-constructed', handleBuildingConstructed as EventListener);
+            window.removeEventListener('assign-worker', handleAssignWorker as EventListener);
             clearInterval(populationGrowthInterval);
         };
-    }, [localData]);
+    }, []);
 
     if (!localData) return null;
 

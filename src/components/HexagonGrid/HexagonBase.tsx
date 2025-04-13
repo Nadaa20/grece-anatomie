@@ -10,7 +10,7 @@ import { Billboard, Text } from '@react-three/drei';
 import { TroopDisplay } from '../Troops/TroopDisplay';
 import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
 import { SplitMovePanel } from '../Troops/SplitMovePanel';
-import { HexagonType } from '../Cities/BuildingTypes';
+import { HexagonType, BUILDING_TYPES, BuildingType } from '../Cities/BuildingTypes';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -102,7 +102,14 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                         ...city.resources,
                         population_max: 5 + (batimentsData['house'] || 0) * 3,
                         population_actuelle: 5 + (batimentsData['house'] || 0) * 3
-                    } : undefined
+                    } : undefined,
+                    Travailleurs: Object.entries(batimentsData).reduce((acc, [buildingId, quantity]) => {
+                        const building = BUILDING_TYPES.find((b: BuildingType) => b.id === buildingId);
+                        if (building?.isActive) {
+                            acc[buildingId] = 0;
+                        }
+                        return acc;
+                    }, {} as { [key: string]: number })
                 }
             }
         };

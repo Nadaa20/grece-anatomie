@@ -17,20 +17,10 @@ export interface BuildingType {
     isStarting: boolean;
     buildableOn: HexagonType[];
     isActive: boolean;
+    requiredWorkers: number;
 }
 
 export const BUILDING_TYPES: BuildingType[] = [
-    {
-        id: 'wall',
-        name: 'Muraille',
-        emoji: '🛡',
-        description: 'Défense de base de la ville',
-        effect: 'Défense de base de la ville',
-        cost: { wood: 0, stone: 0, iron: 0, marble: 0 },
-        isStarting: true,
-        buildableOn: ['city'],
-        isActive: false
-    },
     {
         id: 'well',
         name: 'Puits',
@@ -40,7 +30,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 0, stone: 0, iron: 0, marble: 0 },
         isStarting: true,
         buildableOn: ['city'],
-        isActive: false
+        isActive: false,
+        requiredWorkers: 1
     },
     {
         id: 'house',
@@ -51,7 +42,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 10, stone: 5, iron: 0, marble: 0 },
         isStarting: false,
         buildableOn: ['city'],
-        isActive: false
+        isActive: false,
+        requiredWorkers: 0
     },
     {
         id: 'lumbermill',
@@ -62,7 +54,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 50, stone: 20, iron: 10, marble: 0 },
         isStarting: false,
         buildableOn: ['forest'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'quarry',
@@ -73,7 +66,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 30, stone: 40, iron: 15, marble: 0 },
         isStarting: false,
         buildableOn: ['mine', 'mountain'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'ironmine',
@@ -84,7 +78,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 40, stone: 30, iron: 20, marble: 0 },
         isStarting: false,
         buildableOn: ['mine', 'mountain'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'marblequarry',
@@ -95,7 +90,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 60, stone: 50, iron: 30, marble: 0 },
         isStarting: false,
         buildableOn: ['mine', 'mountain'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'barracks',
@@ -106,7 +102,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 100, stone: 80, iron: 50, marble: 20 },
         isStarting: false,
         buildableOn: ['city'],
-        isActive: true
+        isActive: true,
+        requiredWorkers: 3
     },
     {
         id: 'temple',
@@ -117,7 +114,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 80, stone: 120, iron: 40, marble: 50 },
         isStarting: false,
         buildableOn: ['city'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'market',
@@ -128,7 +126,8 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 70, stone: 60, iron: 30, marble: 20 },
         isStarting: false,
         buildableOn: ['city'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 2
     },
     {
         id: 'port',
@@ -139,6 +138,7 @@ export const BUILDING_TYPES: BuildingType[] = [
         cost: { wood: 150, stone: 100, iron: 60, marble: 30 },
         isStarting: false,
         buildableOn: ['city', 'water'],
-        isActive: false
+        isActive: true,
+        requiredWorkers: 3
     }
 ]; 
