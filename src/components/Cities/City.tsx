@@ -47,30 +47,8 @@ export const CityObject: React.FC<CityObjectProps> = ({ city, position, onClick 
         }
     });
 
-    const handleClick = () => {
-        if (onClick) {
-            onClick();
-        } else {
-            const buildingsData = city.buildings.reduce((acc, building) => ({
-                ...acc,
-                [building.typeId]: (acc[building.typeId] || 0) + 1
-            }), {} as { [key: string]: number });
-
-            window.dispatchEvent(new CustomEvent('show-parchemin', {
-                detail: {
-                    hexagonName: city.name,
-                    data: {
-                        Batiments: buildingsData,
-                        Troupes: {},
-                        Quetes: {}
-                    }
-                }
-            }));
-        }
-    };
-
     return (
-        <group position={position} onClick={handleClick}>
+        <group position={position}>
             <mesh ref={meshRef}>
                 <boxGeometry args={[0.5, 0.5, 0.5]} />
                 <meshStandardMaterial color="brown" />

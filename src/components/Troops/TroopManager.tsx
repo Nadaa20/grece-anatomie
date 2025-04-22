@@ -33,36 +33,12 @@ interface TroopManagerContextType {
     setPath: (path: HexCoordinates[]) => void;
     isMoving: boolean;
     startMoving: (id: string, target: HexCoordinates) => void;
+    addTroop: (type: string, hexCoord: HexCoordinates) => void;
 }
 
 const TroopManagerContext = createContext<TroopManagerContextType | null>(null);
 
-const INITIAL_TROOPS: Troop[] = [
-    {
-        id: uuidv4(),
-        hexCoord: { row: 0, col: 0 },
-        type: "hoplite",
-        owner: "player1"
-    },
-    {
-        id: uuidv4(),
-        hexCoord: { row: 0, col: 1 },
-        type: "frondeur",
-        owner: "player1"
-    },
-    {
-        id: uuidv4(),
-        hexCoord: { row: 0, col: 2 },
-        type: "messager",
-        owner: "player1"
-    },
-    {
-        id: uuidv4(),
-        hexCoord: { row: 0, col: 3 },
-        type: "hoplite",
-        owner: "player1"
-    }
-];
+const INITIAL_TROOPS: Troop[] = [];
 
 export const useTroopManager = () => {
     const context = useContext(TroopManagerContext);
@@ -85,6 +61,7 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const [currentPathIndex, setCurrentPathIndex] = useState(0);
     const [targetTroopId, setTargetTroopId] = useState<string | null>(null);
     const [pendingMoves, setPendingMoves] = useState<{ id: string, target: HexCoordinates }[]>([]);
+    const [currentTroopCreation, setCurrentTroopCreation] = useState<{ hexCoord: HexCoordinates, type: string, currentIndex: number } | null>(null);
 
     // Effet pour gérer les déplacements en attente
     useEffect(() => {
@@ -411,7 +388,113 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         path,
         setPath,
         isMoving,
-        startMoving
+        startMoving,
+        addTroop: (type: string, hexCoord: HexCoordinates) => {
+            // Définir l'ordre d'apparition des troupes autour de la ville
+            const directions = [
+                { row: 0, col: -1 },    // 1 - Ouest
+                { row: -1, col: 0 },    // 2 - Nord-Ouest
+                { row: -1, col: 1 },    // 3 - Nord-Est
+                { row: 0, col: 1 },     // 4 - Est
+                { row: 1, col: 1 },     // 5 - Sud-Est
+                { row: 1, col: 0 }      // 6 - Sud-Ouest
+            ];
+
+            // Trouver la première position disponible dans l'ordre spécifié
+            let targetHex = null;
+            let minTroopsCount = Infinity;
+            let targetTroop = null;
+
+            for (const dir of directions) {
+                const newRow = hexCoord.row + dir.row;
+                const newCol = hexCoord.col + dir.col;
+
+                // Vérifier si la position est valide (pas négative)
+                if (newRow >= 0 && newCol >= 0) {
+                    // Vérifier si la position est déjà occupée
+                    const troopAtPosition = troops.find(t =>
+                        t.hexCoord.row === newRow &&
+                        t.hexCoord.col === newCol
+                    );
+
+                    if (!troopAtPosition) {
+                        targetHex = { row: newRow, col: newCol };
+                        break;
+                    } else {
+                        // Compter le nombre de troupes sur cette position
+                        let troopCount = 1;
+                        if (troopAtPosition.isSquad) {
+                            troopCount = troopAtPosition.troops!.length;
+                        }
+
+                        // Si c'est la case avec le moins de troupes jusqu'à présent
+                        if (troopCount < minTroopsCount) {
+                            minTroopsCount = troopCount;
+                            targetTroop = troopAtPosition;
+                        }
+                    }
+                }
+            }
+
+            // Si on a trouvé une position valide
+            if (targetHex) {
+                const newTroop: Troop = {
+                    id: uuidv4(),
+                    hexCoord: targetHex,
+                    type,
+                    owner: "player1"
+                };
+                console.log('Nouvelle troupe créée:', {
+                    id: newTroop.id,
+                    type: newTroop.type,
+                    position: newTroop.hexCoord,
+                    owner: newTroop.owner
+                });
+                setTroops(prev => [...prev, newTroop]);
+            } else if (targetTroop) {
+                // Si aucune position n'est disponible mais qu'on a trouvé une troupe existante
+                // On crée une escouade avec la nouvelle troupe
+                const newTroop = {
+                    id: uuidv4(),
+                    hexCoord: targetTroop.hexCoord,
+                    type,
+                    owner: "player1"
+                };
+
+                let allTroops = [];
+                if (targetTroop.isSquad) {
+                    allTroops = [...targetTroop.troops!];
+                } else {
+                    allTroops = [targetTroop];
+                }
+                allTroops.push(newTroop);
+
+                const newSquad = {
+                    id: uuidv4(),
+                    hexCoord: targetTroop.hexCoord,
+                    type: 'squad',
+                    owner: "player1",
+                    isSquad: true,
+                    troops: allTroops
+                };
+
+                console.log('Nouvelle escouade créée:', {
+                    id: newSquad.id,
+                    position: newSquad.hexCoord,
+                    owner: newSquad.owner,
+                    troupes: newSquad.troops.map(t => ({
+                        id: t.id,
+                        type: t.type,
+                        position: t.hexCoord
+                    }))
+                });
+
+                setTroops(prev => prev.filter(t => t.id !== targetTroop.id).concat(newSquad));
+            } else {
+                // Si aucune position n'est disponible et aucune troupe n'est trouvée
+                console.log("Aucune position disponible pour créer la troupe");
+            }
+        }
     };
 
     return (

@@ -117,7 +117,20 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         col={col}
                     />
                 );
-            } else if (height > 1) {
+            } else if (height === 0) {
+                hexName = `Water-${territory || "Neutral"}-(${baseName})`;
+                hexagons.push(
+                    <Water
+                        key={hexName}
+                        radius={HEX_RADIUS}
+                        height={height}
+                        position={[x, y, z]}
+                        name={hexName}
+                        row={row}
+                        col={col}
+                    />
+                );
+            } else {
                 const isField = fieldIndices.has(`${row}-${col}`);
                 if (isField) {
                     hexName = `Field-${territory || "Neutral"}-(${baseName})`;
@@ -165,19 +178,6 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         />
                     );
                 }
-            } else {
-                hexName = `Water-${territory || "Neutral"}-(${baseName})`;
-                hexagons.push(
-                    <Water
-                        key={hexName}
-                        radius={HEX_RADIUS}
-                        height={height}
-                        position={[x, y, z]}
-                        name={hexName}
-                        row={row}
-                        col={col}
-                    />
-                );
             }
         }
     }

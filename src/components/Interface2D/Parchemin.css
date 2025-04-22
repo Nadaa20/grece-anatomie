@@ -493,3 +493,30 @@
     font-style: italic;
     margin-bottom: 10px;
 }
+
+.squad-content {
+    margin-top: 5px;
+    padding-left: 20px;
+    border-left: 2px solid #d4a66a;
+}
+
+.squad-troop {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.squad-troop-emoji {
+    font-size: 1.1em;
+}
+
+.squad-troop-name {
+    color: #8b4513;
+}
+
+.squad-troop-count {
+    color: #4a2810;
+    font-weight: bold;
+}

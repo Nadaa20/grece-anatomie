@@ -89,6 +89,18 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
             [building.typeId]: (acc[building.typeId] || 0) + 1
         }), {} as { [key: string]: number }) || {};
 
+        // Compter les troupes sur la case ou dans un rayon de 1 autour de la ville
+        const troopsData = troops.reduce((acc, troop) => {
+            const distance = Math.max(
+                Math.abs(troop.hexCoord.row - row),
+                Math.abs(troop.hexCoord.col - col)
+            );
+            if (distance <= 1) {
+                acc[troop.type] = (acc[troop.type] || 0) + 1;
+            }
+            return acc;
+        }, {} as { [key: string]: number });
+
         const parcheminData = {
             detail: {
                 hexagonName: name || "Unknown",
@@ -96,7 +108,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 data: {
                     hexagonName: city?.name || name || "Unknown",
                     Batiments: batimentsData,
-                    Troupes: {},
+                    Troupes: troopsData,
                     Quetes: {},
                     Ressources: city?.resources ? {
                         ...city.resources,

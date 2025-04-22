@@ -3,6 +3,8 @@ import './Parchemin.css';
 import { BUILDING_TYPES, BuildingType, HexagonType } from '../Cities/BuildingTypes';
 import { TroopTrainingModal } from './TroopTrainingModal';
 import { TROOP_TYPES } from './TroopTypes';
+import { useTroopManager } from '../Troops/TroopManager';
+import { useCityManager } from '../Cities/CityManager';
 
 interface ParcheminsData {
     Batiments: { [key: string]: number };
@@ -42,6 +44,8 @@ const getTotalPopulationUsed = (data: ParcheminsData): number => {
 
 const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: HexagonType }> = ({ type, data, hexagonType }) => {
     const [selectedTroops, setSelectedTroops] = useState<{ [key: string]: number }>({});
+    const cityManager = useCityManager();
+    const troopManager = useTroopManager();
 
     const handleTroopSelect = (troopId: string, increment: number) => {
         setSelectedTroops(prev => {
@@ -245,46 +249,54 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                 </div>
             );
         case 'Troupes':
-            return Object.keys(data.Troupes).length === 0 ? (
-                <p>Aucune troupe présente sur cette case</p>
+            // Trouver la ville correspondante
+            const city = cityManager.cities.find((c: { name: string }) => c.name === data.hexagonName);
+            if (!city) return <p>Aucune ville trouvée</p>;
+
+            // Récupérer les troupes dans un rayon de 1 autour de la ville
+            const nearbyTroops = troopManager.troops.filter((troop: { hexCoord: { row: number; col: number } }) => {
+                const distance = Math.max(
+                    Math.abs(troop.hexCoord.row - city.hexCoord.row),
+                    Math.abs(troop.hexCoord.col - city.hexCoord.col)
+                );
+                return distance <= 1;
+            });
+
+            return nearbyTroops.length === 0 ? (
+                <p>Aucune troupe présente autour de cette ville</p>
             ) : (
                 <div className="troupes-container">
-                    <div className="squad-info">
-                        {getSquadText()}
-                    </div>
-                    <div className="troupes-list">
-                        {Object.entries(data.Troupes).map(([troopId, quantity]) => {
-                            const troopType = TROOP_TYPES.find(t => t.id === troopId);
-                            const selectedCount = selectedTroops[troopId] || 0;
-                            const canAddMore = selectedCount < quantity;
-                            return (
-                                <div key={troopId} className={`troupe-item ${selectedCount > 0 ? 'selected' : ''}`}>
-                                    <span className="troupe-emoji">{troopType?.emoji}</span>
-                                    <span className="troupe-nom">{troopType?.name}</span>
-                                    <span className="troupe-quantite">x{quantity}</span>
-                                    <div className="troop-controls">
-                                        <button
-                                            className="troop-button"
-                                            onClick={() => handleTroopSelect(troopId, 1)}
-                                            disabled={!canAddMore}
-                                        >
-                                            +
-                                        </button>
-                                        <button
-                                            className="troop-button"
-                                            onClick={() => handleTroopSelect(troopId, -1)}
-                                            disabled={selectedCount <= 0}
-                                        >
-                                            -
-                                        </button>
-                                    </div>
-                                    {selectedCount > 0 && (
-                                        <span className="selected-count">({selectedCount})</span>
+                    {nearbyTroops.map((troop: { id: string; type: string; isSquad?: boolean; troops?: { type: string }[] }) => {
+                        const troopType = TROOP_TYPES.find(t => t.id === troop.type);
+                        return (
+                            <div key={troop.id} className="troupe-item">
+                                <span className="troupe-emoji">{troopType?.emoji}</span>
+                                <span className="troupe-nom">
+                                    {troop.isSquad ? 'Escouade' : troopType?.name}
+                                    {troop.isSquad && troop.troops && (
+                                        <div className="squad-content">
+                                            {Object.entries(
+                                                troop.troops.reduce((acc: { [key: string]: number }, t: { type: string }) => {
+                                                    acc[t.type] = (acc[t.type] || 0) + 1;
+                                                    return acc;
+                                                }, {})
+                                            ).map(([type, count]) => {
+                                                const typeInfo = TROOP_TYPES.find(t => t.id === type);
+                                                return (
+                                                    <div key={type} className="squad-troop">
+                                                        <span className="squad-troop-emoji">{typeInfo?.emoji}</span>
+                                                        <span className="squad-troop-name">{typeInfo?.name}</span>
+                                                        <span className="squad-troop-count">x{count}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                                </span>
+                                {!troop.isSquad && <span className="troupe-quantite">x1</span>}
+                            </div>
+                        );
+                    })}
                 </div>
             );
         case 'Quetes':
@@ -308,6 +320,8 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
     const [localData, setLocalData] = useState<ParcheminsData | null>(data);
     const localDataRef = useRef<ParcheminsData | null>(data);
     const [showTroopTrainingModal, setShowTroopTrainingModal] = useState(false);
+    const troopManager = useTroopManager();
+    const cityManager = useCityManager();
 
     useEffect(() => {
         setLocalData(data);
@@ -477,6 +491,38 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
     }, []);
 
     const handleTrainTroop = (troopId: string) => {
+        // Trouver la ville correspondante
+        const city = cityManager.cities.find(c => c.name === localData?.hexagonName);
+        if (!city) return;
+
+        // Vérifier si la ville a une caserne
+        const hasBarracks = city.buildings.some(b => b.typeId === 'barracks');
+        if (!hasBarracks) {
+            alert("Vous devez construire une caserne pour former des troupes");
+            return;
+        }
+
+        // Vérifier si on a assez de ressources
+        const troopType = TROOP_TYPES.find(t => t.id === troopId);
+        if (!troopType) return;
+
+        const hasEnoughResources = Object.entries(troopType.cost).every(([resource, cost]) => {
+            if (resource === 'population') {
+                const totalPopulationUsed = getTotalPopulationUsed(localData!);
+                return localData!.Ressources!.population_actuelle - totalPopulationUsed >= 1;
+            }
+            return (localData!.Ressources as any)[resource] >= (cost || 0);
+        });
+
+        if (!hasEnoughResources) {
+            alert("Pas assez de ressources pour former cette troupe");
+            return;
+        }
+
+        // Créer la troupe
+        troopManager.addTroop(troopId, city.hexCoord);
+
+        // Déduire les ressources
         window.dispatchEvent(new CustomEvent('train-troop', {
             detail: {
                 troopId,

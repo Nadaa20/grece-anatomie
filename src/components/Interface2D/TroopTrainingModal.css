@@ -12,8 +12,6 @@
 }
 
 .troop-training-modal {
-    background-image: url('/textures/parchemin.jpg');
-    background-size: cover;
     padding: 20px;
     border-radius: 10px;
     width: 600px;
