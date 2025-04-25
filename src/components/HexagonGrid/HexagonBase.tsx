@@ -11,6 +11,7 @@ import { TroopDisplay } from '../Troops/TroopDisplay';
 import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
 import { SplitMovePanel } from '../Troops/SplitMovePanel';
 import { HexagonType, BUILDING_TYPES, BuildingType } from '../Cities/BuildingTypes';
+import { usePlayer } from '../../contexts/PlayerContext';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -20,16 +21,20 @@ interface HexagonBaseProps {
     name?: string;
     row: number;
     col: number;
-    hexagonType: HexagonType;
+    hexagonType: string;
+    territory: string;
+    warfogIntensity?: number;
+    warfogColor?: string;
 }
 
-const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col, hexagonType }) => {
+const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col, hexagonType, territory, warfogIntensity = 0, warfogColor = "#FFA500" }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
     const [showDetail, setShowDetail] = useState(false)
     const { selectedTroop, getTroopAtHex, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
     const { getCityAtHex } = useCityManager();
+    const { currentTerritory } = usePlayer();
     const troop = getTroopAtHex(row, col);
     const city = getCityAtHex(row, col);
     const [showMoveOptions, setShowMoveOptions] = useState(false);
@@ -38,6 +43,8 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     const isInPath = path.some(coord => coord.row === row && coord.col === col);
     const isPathStart = path.length > 0 && path[0].row === row && path[0].col === col;
     const isPathEnd = path.length > 0 && path[path.length - 1].row === row && path[path.length - 1].col === col;
+
+    const isPlayerTerritory = territory === currentTerritory;
 
     const checkHexagonInteraction = (e: any) => {
         e.stopPropagation();
@@ -50,6 +57,14 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleClick = (e: any) => {
         e.stopPropagation();
+
+        if (!isPlayerTerritory) {
+            console.log("Vous n'êtes pas le leader de ce territoire");
+            return;
+        }
+
+        // Log the territory information
+        console.log(`Hexagon clicked at (${row}, ${col}) - Territory: ${territory}`);
 
         if (!selectedTroop) {
             window.dispatchEvent(new CustomEvent('hexagon-clicked'));
@@ -84,6 +99,11 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     };
 
     const handleDetailClick = () => {
+        if (!isPlayerTerritory) {
+            console.log("Vous n'êtes pas le leader de ce territoire");
+            return;
+        }
+
         const batimentsData = city?.buildings.reduce((acc, building) => ({
             ...acc,
             [building.typeId]: (acc[building.typeId] || 0) + 1
@@ -219,7 +239,8 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 <meshStandardMaterial
                     color={
                         isInPath ? "#ffffff" :
-                            isHovered ? "#ffff00" : (color || "gray")
+                            isHovered ? "#ffff00" :
+                                warfogIntensity > 0 ? warfogColor : (color || "gray")
                     }
                     emissive={
                         isInPath ? "#ffffff" :
@@ -236,6 +257,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 <TroopDisplay
                     troop={troop}
                     position={troopPosition}
+                    warfogIntensity={warfogIntensity}
                 />
             )}
 

@@ -1,7 +1,5 @@
-import React, { useRef } from 'react';
-import { Html } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
-import { Mesh } from 'three';
+import React from 'react';
+import { Billboard, Text } from '@react-three/drei';
 
 export interface Building {
     id: string;
@@ -31,42 +29,50 @@ export interface City {
     };
 }
 
-interface CityObjectProps {
-    city: City;
+interface CityProps {
+    city: {
+        id: string;
+        name: string;
+        hexCoord: {
+            row: number;
+            col: number;
+        };
+    };
     position: [number, number, number];
-    onClick?: () => void;
 }
 
-export const CityObject: React.FC<CityObjectProps> = ({ city, position, onClick }) => {
-    const meshRef = useRef<Mesh>(null);
-
-    // Animation simple de flottement
-    useFrame((state) => {
-        if (meshRef.current) {
-            meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime) * 0.1;
-        }
-    });
-
+export const CityObject: React.FC<CityProps> = ({ city, position }) => {
     return (
         <group position={position}>
-            <mesh ref={meshRef}>
+            <mesh>
                 <boxGeometry args={[0.5, 0.5, 0.5]} />
                 <meshStandardMaterial color="brown" />
             </mesh>
-            <Html position={[0, 1, 0]} center>
-                <div style={{
-                    color: 'white',
-                    fontSize: '12px',
-                    textAlign: 'center',
-                    background: 'rgba(0,0,0,0.5)',
-                    padding: '2px 5px',
-                    borderRadius: '3px',
-                    userSelect: 'none',
-                    pointerEvents: 'none'
-                }}>
+            <Billboard
+                position={[0, 0.8, 0]}
+                follow={true}
+                lockX={false}
+                lockY={false}
+                lockZ={false}
+            >
+                <mesh>
+                    <planeGeometry args={[1.6, 1.2]} />
+                    <meshBasicMaterial
+                        color="black"
+                        transparent={true}
+                        opacity={0.5}
+                    />
+                </mesh>
+                <Text
+                    position={[0, 0, 0.01]}
+                    fontSize={0.3}
+                    color="#ffffff"
+                    anchorX="center"
+                    anchorY="middle"
+                >
                     {city.name}
-                </div>
-            </Html>
+                </Text>
+            </Billboard>
         </group>
     );
 }; 

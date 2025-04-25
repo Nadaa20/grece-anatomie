@@ -2,23 +2,47 @@ import React, { createContext, useContext, useEffect } from 'react';
 import { City, CityObject } from './City';
 import { BUILDING_TYPES } from './BuildingTypes';
 
-const initialCity: City = {
+const athens: City = {
     id: 'athens',
     name: 'Athènes',
     population: 0,
-    position: { x: 0, y: 1 },
-    hexCoord: { row: 1, col: 0 },
+    position: { x: 62, y: 59 },
+    hexCoord: { row: 59, col: 62 },
     buildings: [
         { id: 'athens-house-1', typeId: 'house', level: 1, constructionProgress: 100 },
-        { id: 'athens-house-2', typeId: 'house', level: 1, constructionProgress: 100 },
-        { id: 'athens-wall', typeId: 'wall', level: 1, constructionProgress: 100 },
-        { id: 'athens-well', typeId: 'well', level: 1, constructionProgress: 100 }
+        { id: 'athens-house-2', typeId: 'house', level: 1, constructionProgress: 100 }
+    ],
+    resources: { wood: 1000, stone: 800, iron: 500, marble: 200 }
+};
+
+const sparta: City = {
+    id: 'sparta',
+    name: 'Sparte',
+    population: 0,
+    position: { x: 37, y: 77 },
+    hexCoord: { row: 77, col: 37 },
+    buildings: [
+        { id: 'sparta-house-1', typeId: 'house', level: 1, constructionProgress: 100 },
+        { id: 'sparta-house-2', typeId: 'house', level: 1, constructionProgress: 100 }
+    ],
+    resources: { wood: 1000, stone: 800, iron: 500, marble: 200 }
+};
+
+const thebes: City = {
+    id: 'thebes',
+    name: 'Thèbes',
+    population: 0,
+    position: { x: 48, y: 48 },
+    hexCoord: { row: 48, col: 48 },
+    buildings: [
+        { id: 'thebes-house-1', typeId: 'house', level: 1, constructionProgress: 100 },
+        { id: 'thebes-house-2', typeId: 'house', level: 1, constructionProgress: 100 }
     ],
     resources: { wood: 1000, stone: 800, iron: 500, marble: 200 }
 };
 
 const cityManager = {
-    cities: [initialCity],
+    cities: [athens, sparta, thebes],
     addCity: (city: City) => cityManager.cities.push(city),
     removeCity: (cityId: string) => {
         const index = cityManager.cities.findIndex(c => c.id === cityId);

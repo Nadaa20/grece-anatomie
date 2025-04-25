@@ -23,7 +23,7 @@ interface HexagonData {
     row: number;
     col: number;
     type: string;
-    territory: string | null;
+    territory: string;
     height: number;
     position: [number, number, number];
     name: string;
@@ -105,7 +105,7 @@ export const Interface2D: React.FC<{ mode: "environment" | "territory" }> = ({ m
                     row,
                     col,
                     type,
-                    territory: null, // À implémenter selon la logique du jeu
+                    territory: '',
                     height,
                     position: [x, height / 2, z],
                     name: hexagonName,

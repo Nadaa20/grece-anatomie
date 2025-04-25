@@ -9,6 +9,8 @@ import { useTroopManager } from '../Troops/TroopManager';
 import { useCityManager } from '../Cities/CityManager';
 import { CityObject } from '../Cities/City';
 import { useHeightmap } from '../../hooks/useHeightmap';
+import { usePlayer } from '../../contexts/PlayerContext';
+import { Troop } from '../../entities/Troop';
 
 const loadImageData = async (path: string): Promise<ImageData | null> => {
     const img = new Image();
@@ -50,14 +52,45 @@ const isAdjacentToWater = (row: number, col: number, mapWidth: number, mapHeight
     return false;
 };
 
-const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode: "environment" | "territory" }> = ({
+const calculateDistance = (row1: number, col1: number, row2: number, col2: number): number => {
+    const dx = Math.abs(col2 - col1);
+    const dy = Math.abs(row2 - row1);
+    return Math.max(dx, dy);
+};
+
+const getWarfogIntensity = (row: number, col: number, commanders: Troop[], currentTerritory: string): number => {
+    if (commanders.length === 0) return 1;
+
+    const playerCommanders = commanders.filter(commander => commander.owner === currentTerritory);
+    if (playerCommanders.length === 0) return 1;
+
+    const minDistance = Math.min(...playerCommanders.map(commander =>
+        calculateDistance(row, col, commander.hexCoord.row, commander.hexCoord.col)
+    ));
+
+    if (minDistance <= 1) return 0;
+    return 1;
+};
+
+interface HexagonGridProps {
+    heightmapPath: string;
+    colormapPath: string;
+    mode: "environment" | "territory";
+    warfogEnabled: boolean;
+}
+
+const HexagonGrid: React.FC<HexagonGridProps> = ({
     heightmapPath,
     colormapPath,
     mode,
+    warfogEnabled,
 }) => {
     const [colormapData, setColormapData] = useState<Uint8ClampedArray | null>(null);
     const [fieldIndices, setFieldIndices] = useState<Set<string>>(new Set());
     const { cities } = useCityManager();
+    const { troops } = useTroopManager();
+    const { currentTerritory } = usePlayer();
+    const commanders = troops.filter((troop: Troop) => troop.type === 'Commandant');
     const { heightmapData, mapWidth, mapHeight, getHeight } = useHeightmap(heightmapPath);
 
     useEffect(() => {
@@ -102,6 +135,8 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
             const baseName = `${row}-${col}`;
             let hexName = "";
 
+            const warfogIntensity = warfogEnabled ? getWarfogIntensity(row, col, commanders, currentTerritory) : 0;
+
             if (height > 4) {
                 hexName = `Stone-${territory || "Neutral"}-(${baseName})`;
                 hexagons.push(
@@ -110,11 +145,12 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         radius={HEX_RADIUS}
                         height={height}
                         position={[x, y, z]}
-                        mode={mode as "environment" | "territory"}
-                        territory={territory}
+                        mode={mode}
+                        territory={territory || "Neutral"}
                         name={hexName}
                         row={row}
                         col={col}
+                        warfogIntensity={warfogIntensity}
                     />
                 );
             } else if (height === 0) {
@@ -125,9 +161,12 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                         radius={HEX_RADIUS}
                         height={height}
                         position={[x, y, z]}
+                        mode={mode}
+                        territory={territory || "Neutral"}
                         name={hexName}
                         row={row}
                         col={col}
+                        warfogIntensity={warfogIntensity}
                     />
                 );
             } else {
@@ -141,10 +180,11 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             height={height}
                             position={[x, y, z]}
                             mode={mode}
-                            territory={territory}
+                            territory={territory || "Neutral"}
                             name={hexName}
                             row={row}
                             col={col}
+                            warfogIntensity={warfogIntensity}
                         />
                     );
                 } else if (isAdjacentToWater(row, col, mapWidth, mapHeight, heightmapData)) {
@@ -156,10 +196,11 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             height={height}
                             position={[x, y, z]}
                             mode={mode}
-                            territory={territory}
+                            territory={territory || "Neutral"}
                             name={hexName}
                             row={row}
                             col={col}
+                            warfogIntensity={warfogIntensity}
                         />
                     );
                 } else {
@@ -171,10 +212,11 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                             height={height}
                             position={[x, y, z]}
                             mode={mode}
-                            territory={territory}
+                            territory={territory || "Neutral"}
                             name={hexName}
                             row={row}
                             col={col}
+                            warfogIntensity={warfogIntensity}
                         />
                     );
                 }
@@ -190,6 +232,10 @@ const HexagonGrid: React.FC<{ heightmapPath: string; colormapPath: string; mode:
                 const z = city.hexCoord.row * TILE_Z;
                 const height = getHeight(city.hexCoord.row, city.hexCoord.col);
                 const y = height / 2;
+
+                const cityWarfogIntensity = warfogEnabled ? getWarfogIntensity(city.hexCoord.row, city.hexCoord.col, commanders, currentTerritory) : 0;
+
+                if (cityWarfogIntensity > 0) return null;
 
                 return (
                     <CityObject

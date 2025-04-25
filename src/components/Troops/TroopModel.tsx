@@ -1,39 +1,25 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { useTroopManager } from './TroopManager';
+import { Troop } from '../../entities/Troop';
 
 interface TroopModelProps {
     position: [number, number, number];
     scale?: number;
-    troopId: string;
-    type: string;
+    troop: Troop;
 }
 
-export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopModelProps) => {
+export const TroopModel = memo(({ position, scale = 0.5, troop }: TroopModelProps) => {
     const { selectedTroop, selectTroop } = useTroopManager();
-    const isSelected = selectedTroop === troopId;
+    const isSelected = selectedTroop === troop.id;
 
     const handleClick = useCallback((e: any) => {
         e.stopPropagation();
-        selectTroop(troopId);
-    }, [troopId, selectTroop]);
+        selectTroop(troop.id);
+    }, [troop.id, selectTroop]);
 
     const color = useMemo(() => {
-        if (type === 'squad') {
-            return isSelected ? "#ffd700" : "#daa520"; // Couleur dorée pour les escouades
-        }
-        switch (type) {
-            case 'hoplite': return isSelected ? "#ff6666" : "#800000";
-            case 'frondeur': return isSelected ? "#66ff66" : "#008000";
-            case 'messager': return isSelected ? "#6666ff" : "#000080";
-            default: return isSelected ? "#ff6666" : "#0000ff";
-        }
-    }, [type, isSelected]);
-
-    const geometry = useMemo(() => (
-        type === 'squad'
-            ? <cylinderGeometry args={[0.5, 0.5, 1, 8]} /> // Forme cylindrique pour les escouades
-            : <boxGeometry args={[1, 1, 1]} />
-    ), [type]);
+        return isSelected ? troop.getSelectedColor() : troop.getColor();
+    }, [troop, isSelected]);
 
     const material = useMemo(() => (
         <meshStandardMaterial
@@ -45,8 +31,7 @@ export const TroopModel = memo(({ position, scale = 0.5, troopId, type }: TroopM
 
     return (
         <group position={position} onClick={handleClick}>
-            <mesh scale={scale}>
-                {geometry}
+            <mesh scale={scale} geometry={troop.getGeometry()}>
                 {material}
             </mesh>
         </group>
