@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { SocketContext } from '../context/SocketContext';
+import { SocketContext } from '../contexts/SocketContext';
 import UsernameForm from './UsernameForm';
 import GameList from './GameList';
 import WaitingScreen from './WaitingScreen';
