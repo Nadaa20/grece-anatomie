@@ -5,10 +5,13 @@ import { DetailButton } from './DetailButton'
 import { HexagonInteraction } from './HexagonInteraction'
 import { TroopModel } from '../Troops/TroopModel';
 import { useTroopManager } from '../Troops/TroopManager';
+import { useCityManager } from '../Cities/CityManager';
 import { Billboard, Text } from '@react-three/drei';
 import { TroopDisplay } from '../Troops/TroopDisplay';
 import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
 import { SplitMovePanel } from '../Troops/SplitMovePanel';
+import { HexagonType, BUILDING_TYPES, BuildingType } from '../Cities/BuildingTypes';
+import { usePlayer } from '../../contexts/PlayerContext';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -18,21 +21,30 @@ interface HexagonBaseProps {
     name?: string;
     row: number;
     col: number;
+    hexagonType: string;
+    territory: string;
+    warfogIntensity?: number;
+    warfogColor?: string;
 }
 
-const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col }) => {
+const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, color, name, row, col, hexagonType, territory, warfogIntensity = 0, warfogColor = "#FFA500" }) => {
     const [isHovered, setIsHovered] = useState(false);
     const { raycaster } = useThree();
     const meshRef = useRef<Mesh>(null);
     const [showDetail, setShowDetail] = useState(false)
     const { selectedTroop, getTroopAtHex, troops, splitMoveTroop, path, isMoving, startMoving } = useTroopManager();
+    const { getCityAtHex } = useCityManager();
+    const { currentTerritory } = usePlayer();
     const troop = getTroopAtHex(row, col);
+    const city = getCityAtHex(row, col);
     const [showMoveOptions, setShowMoveOptions] = useState(false);
     const [showSplitPanel, setShowSplitPanel] = useState(false);
 
     const isInPath = path.some(coord => coord.row === row && coord.col === col);
     const isPathStart = path.length > 0 && path[0].row === row && path[0].col === col;
     const isPathEnd = path.length > 0 && path[path.length - 1].row === row && path[path.length - 1].col === col;
+
+    const isPlayerTerritory = territory === currentTerritory;
 
     const checkHexagonInteraction = (e: any) => {
         e.stopPropagation();
@@ -45,6 +57,14 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleClick = (e: any) => {
         e.stopPropagation();
+
+        if (!isPlayerTerritory) {
+            console.log("Vous n'êtes pas le leader de ce territoire");
+            return;
+        }
+
+        // Log the territory information
+        console.log(`Hexagon clicked at (${row}, ${col}) - Territory: ${territory}`);
 
         if (!selectedTroop) {
             window.dispatchEvent(new CustomEvent('hexagon-clicked'));
@@ -79,11 +99,55 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
     };
 
     const handleDetailClick = () => {
-        console.log(`Détail de l'hexagone ${name || "Unknown"}`);
-        window.dispatchEvent(new CustomEvent('show-parchemin', {
-            detail: { hexagonName: name || "Unknown" }
-        }));
-    }
+        if (!isPlayerTerritory) {
+            console.log("Vous n'êtes pas le leader de ce territoire");
+            return;
+        }
+
+        const batimentsData = city?.buildings.reduce((acc, building) => ({
+            ...acc,
+            [building.typeId]: (acc[building.typeId] || 0) + 1
+        }), {} as { [key: string]: number }) || {};
+
+        // Compter les troupes sur la case ou dans un rayon de 1 autour de la ville
+        const troopsData = troops.reduce((acc, troop) => {
+            const distance = Math.max(
+                Math.abs(troop.hexCoord.row - row),
+                Math.abs(troop.hexCoord.col - col)
+            );
+            if (distance <= 1) {
+                acc[troop.type] = (acc[troop.type] || 0) + 1;
+            }
+            return acc;
+        }, {} as { [key: string]: number });
+
+        const parcheminData = {
+            detail: {
+                hexagonName: name || "Unknown",
+                hexagonType: city ? 'city' : hexagonType,
+                data: {
+                    hexagonName: city?.name || name || "Unknown",
+                    Batiments: batimentsData,
+                    Troupes: troopsData,
+                    Quetes: {},
+                    Ressources: city?.resources ? {
+                        ...city.resources,
+                        population_max: 5 + (batimentsData['house'] || 0) * 3,
+                        population_actuelle: 5 + (batimentsData['house'] || 0) * 3
+                    } : undefined,
+                    Travailleurs: Object.entries(batimentsData).reduce((acc, [buildingId, quantity]) => {
+                        const building = BUILDING_TYPES.find((b: BuildingType) => b.id === buildingId);
+                        if (building?.isActive) {
+                            acc[buildingId] = 0;
+                        }
+                        return acc;
+                    }, {} as { [key: string]: number })
+                }
+            }
+        };
+
+        window.dispatchEvent(new CustomEvent('show-parchemin', parcheminData));
+    };
 
     const handleMoveAll = () => {
         if (selectedTroop) {
@@ -175,7 +239,8 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 <meshStandardMaterial
                     color={
                         isInPath ? "#ffffff" :
-                            isHovered ? "#ffff00" : (color || "gray")
+                            isHovered ? "#ffff00" :
+                                warfogIntensity > 0 ? warfogColor : (color || "gray")
                     }
                     emissive={
                         isInPath ? "#ffffff" :
@@ -192,6 +257,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 <TroopDisplay
                     troop={troop}
                     position={troopPosition}
+                    warfogIntensity={warfogIntensity}
                 />
             )}
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import WaitingRoom from './WaitingRoom/WaitingRoom';
-import { SocketProvider } from './context/SocketContext';
+import { SocketProvider } from './contexts/SocketContext';
 
 const RootComponent: React.FC = () => {
     const [currentGameId, setCurrentGameId] = useState<number | null>(null);

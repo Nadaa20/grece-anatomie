@@ -15,8 +15,8 @@ export const MoveOptionsPanel: React.FC<MoveOptionsPanelProps> = ({
     onSplitMove,
     troopTypes
 }) => {
-    const panelHeight = 1.2;
-    const panelWidth = 3;
+    const panelHeight = 1.8;
+    const panelWidth = 4;
 
     const handleBackgroundClick = (e: any) => {
         e.stopPropagation();
@@ -36,9 +36,9 @@ export const MoveOptionsPanel: React.FC<MoveOptionsPanelProps> = ({
 
                 {/* Titre */}
                 <Text
-                    position={[0, panelHeight / 2 - 0.15, 0]}
+                    position={[0, panelHeight / 2 - 0.2, 0]}
                     color="white"
-                    fontSize={0.12}
+                    fontSize={0.18}
                     font="/fonts/Inter-Bold.woff"
                 >
                     Options de déplacement
@@ -46,17 +46,17 @@ export const MoveOptionsPanel: React.FC<MoveOptionsPanelProps> = ({
 
                 {/* Option 1: Déplacer tout */}
                 <group
-                    position={[-panelWidth / 4, 0.1, 0]}
+                    position={[-panelWidth / 4, 0.15, 0]}
                     onClick={onMoveAll}
                 >
                     <mesh>
-                        <planeGeometry args={[1.2, 0.4]} />
+                        <planeGeometry args={[1.6, 0.5]} />
                         <meshBasicMaterial color="#444444" transparent opacity={0.8} />
                     </mesh>
                     <Text
                         position={[0, 0, 0.01]}
                         color="white"
-                        fontSize={0.1}
+                        fontSize={0.15}
                         textAlign="center"
                     >
                         Déplacer tout
@@ -64,15 +64,15 @@ export const MoveOptionsPanel: React.FC<MoveOptionsPanelProps> = ({
                 </group>
 
                 {/* Option 2: Types de troupes */}
-                <group position={[panelWidth / 4, 0.1, 0]} onClick={onSplitMove}>
+                <group position={[panelWidth / 4, 0.15, 0]} onClick={onSplitMove}>
                     <mesh>
-                        <planeGeometry args={[1.2, 0.4]} />
+                        <planeGeometry args={[1.6, 0.5]} />
                         <meshBasicMaterial color="#444444" transparent opacity={0.8} />
                     </mesh>
                     <Text
                         position={[0, 0, 0.01]}
                         color="white"
-                        fontSize={0.1}
+                        fontSize={0.15}
                         textAlign="center"
                     >
                         Séparer
@@ -80,13 +80,13 @@ export const MoveOptionsPanel: React.FC<MoveOptionsPanelProps> = ({
                 </group>
 
                 {/* Liste des types de troupes */}
-                <group position={[0, -0.4, 0]}>
+                <group position={[0, -0.5, 0]}>
                     {troopTypes.map((type, index) => (
                         <Text
                             key={type.type}
-                            position={[0, -index * 0.15, 0]}
+                            position={[0, -index * 0.2, 0]}
                             color="white"
-                            fontSize={0.08}
+                            fontSize={0.13}
                             textAlign="center"
                         >
                             {`${type.type}: ${type.count}`}

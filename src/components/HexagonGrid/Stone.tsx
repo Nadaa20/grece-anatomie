@@ -7,16 +7,41 @@ interface StoneProps {
     radius: number;
     height: number;
     mode: "environment" | "territory";
-    territory?: string | null;
+    territory: string;
     name: string;
     row: number;
     col: number;
+    warfogIntensity?: number;
+    warfogColor?: string;
 }
 
-const Stone: React.FC<StoneProps> = ({ position, radius, height, mode, territory, name, row, col }) => {
+const Stone: React.FC<StoneProps> = ({
+    position,
+    radius,
+    height,
+    mode,
+    territory,
+    name,
+    row,
+    col,
+    warfogIntensity = 0,
+    warfogColor = "#FFA500"
+}) => {
     const color = mode === "territory" && territory ? TERRITORY_COLORS[territory] : "gray";
 
-    return <HexagonBase position={position} radius={radius} height={height} color={color} name={name} row={row} col={col} />;
+    return <HexagonBase
+        position={position}
+        radius={radius}
+        height={height}
+        color={color}
+        name={name}
+        row={row}
+        col={col}
+        hexagonType="stone"
+        territory={territory}
+        warfogIntensity={warfogIntensity}
+        warfogColor={warfogColor}
+    />;
 };
 
 export default Stone;

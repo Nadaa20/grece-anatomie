@@ -8,4 +8,5 @@ export const TERRITORY_COLORS: Record<string, string> = {
     Attica: "#00FF00",
     Thessaly: "#FF0000",
     Pelopponesus: "#FFFF00",
+    Neutral: "#808080"
 };

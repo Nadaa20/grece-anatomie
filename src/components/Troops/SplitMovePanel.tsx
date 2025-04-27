@@ -18,8 +18,8 @@ export const SplitMovePanel: React.FC<SplitMovePanelProps> = ({
         troopTypes.reduce((acc, { type }) => ({ ...acc, [type]: 0 }), {})
     );
 
-    const panelHeight = 1.2 + (troopTypes.length * 0.2);
-    const panelWidth = 3;
+    const panelHeight = 1.8 + (troopTypes.length * 0.35);
+    const panelWidth = 4;
 
     const handleBackgroundClick = (e: any) => {
         e.stopPropagation();
@@ -47,9 +47,9 @@ export const SplitMovePanel: React.FC<SplitMovePanelProps> = ({
 
                 {/* Titre */}
                 <Text
-                    position={[0, panelHeight / 2 - 0.15, 0]}
+                    position={[0, panelHeight / 2 - 0.2, 0]}
                     color="white"
-                    fontSize={0.12}
+                    fontSize={0.18}
                     font="/fonts/Inter-Bold.woff"
                 >
                     Séparer les troupes
@@ -57,60 +57,60 @@ export const SplitMovePanel: React.FC<SplitMovePanelProps> = ({
 
                 {/* Contrôles pour chaque type */}
                 {troopTypes.map((type, index) => (
-                    <group key={type.type} position={[0, 0.2 - (index * 0.3), 0]}>
+                    <group key={type.type} position={[0, 0.3 - (index * 0.45), 0]}>
                         <Text
-                            position={[-0.8, 0, 0]}
+                            position={[-1.0, 0, 0]}
                             color="white"
-                            fontSize={0.08}
+                            fontSize={0.15}
                             textAlign="right"
                         >
                             {type.type}
                         </Text>
 
                         {/* Bouton - */}
-                        <group position={[-0.2, 0, 0]} onClick={() => adjustCount(type.type, false)}>
+                        <group position={[-0.35, 0, 0]} onClick={() => adjustCount(type.type, false)}>
                             <mesh>
-                                <planeGeometry args={[0.2, 0.2]} />
+                                <planeGeometry args={[0.35, 0.35]} />
                                 <meshBasicMaterial color="#444444" />
                             </mesh>
-                            <Text position={[0, 0, 0.01]} color="white" fontSize={0.1}>-</Text>
+                            <Text position={[0, 0, 0.01]} color="white" fontSize={0.18}>-</Text>
                         </group>
 
                         {/* Compteur */}
                         <Text
                             position={[0, 0, 0]}
                             color="white"
-                            fontSize={0.1}
+                            fontSize={0.15}
                         >
                             {`${splits[type.type] || 0}/${type.count}`}
                         </Text>
 
                         {/* Bouton + */}
-                        <group position={[0.2, 0, 0]} onClick={() => adjustCount(type.type, true)}>
+                        <group position={[0.35, 0, 0]} onClick={() => adjustCount(type.type, true)}>
                             <mesh>
-                                <planeGeometry args={[0.2, 0.2]} />
+                                <planeGeometry args={[0.35, 0.35]} />
                                 <meshBasicMaterial color="#444444" />
                             </mesh>
-                            <Text position={[0, 0, 0.01]} color="white" fontSize={0.1}>+</Text>
+                            <Text position={[0, 0, 0.01]} color="white" fontSize={0.18}>+</Text>
                         </group>
                     </group>
                 ))}
 
                 {/* Boutons Confirmer/Annuler */}
-                <group position={[-0.6, -panelHeight / 2 + 0.2, 0]} onClick={() => onConfirm(splits)}>
+                <group position={[-0.8, -panelHeight / 2 + 0.3, 0]} onClick={() => onConfirm(splits)}>
                     <mesh>
-                        <planeGeometry args={[1, 0.3]} />
+                        <planeGeometry args={[1.4, 0.45]} />
                         <meshBasicMaterial color="#006400" />
                     </mesh>
-                    <Text position={[0, 0, 0.01]} color="white" fontSize={0.1}>Confirmer</Text>
+                    <Text position={[0, 0, 0.01]} color="white" fontSize={0.15}>Confirmer</Text>
                 </group>
 
-                <group position={[0.6, -panelHeight / 2 + 0.2, 0]} onClick={onCancel}>
+                <group position={[0.8, -panelHeight / 2 + 0.3, 0]} onClick={onCancel}>
                     <mesh>
-                        <planeGeometry args={[1, 0.3]} />
+                        <planeGeometry args={[1.4, 0.45]} />
                         <meshBasicMaterial color="#640000" />
                     </mesh>
-                    <Text position={[0, 0, 0.01]} color="white" fontSize={0.1}>Annuler</Text>
+                    <Text position={[0, 0, 0.01]} color="white" fontSize={0.15}>Annuler</Text>
                 </group>
             </group>
         </Billboard>

@@ -1,20 +1,22 @@
 import React from 'react';
 import { Billboard, Text } from '@react-three/drei';
 import { TroopModel } from './TroopModel';
-import { Troop } from './TroopManager';
+import { Troop } from '../../entities/Troop';
 
 interface TroopDisplayProps {
-    troop: Troop;
+    troop: Troop | undefined;
     position: [number, number, number];
+    warfogIntensity?: number;
 }
 
-export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position }) => {
+export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position, warfogIntensity = 0 }) => {
+    if (!troop || warfogIntensity > 0) return null;
+
     return (
         <>
             <TroopModel
                 position={position}
-                troopId={troop.id}
-                type={troop.type}
+                troop={troop}
                 scale={troop.isSquad ? 0.7 : 0.5}
             />
             <Billboard
@@ -29,7 +31,7 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position }) =
                 lockZ={false}
             >
                 <mesh>
-                    <planeGeometry args={[1.6, 0.8]} />
+                    <planeGeometry args={[1.6, 1.2]} />
                     <meshBasicMaterial
                         color="black"
                         transparent={true}
@@ -37,7 +39,7 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position }) =
                     />
                 </mesh>
                 <Text
-                    position={[0, 0, 0.01]}
+                    position={[0, 0.2, 0.01]}
                     fontSize={0.3}
                     color="#ffffff"
                     anchorX="center"
@@ -47,6 +49,15 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position }) =
                         ? `Escouade (${troop.troops?.length || 0})`
                         : `${troop.type}`
                     }
+                </Text>
+                <Text
+                    position={[0, -0.2, 0.01]}
+                    fontSize={0.25}
+                    color="#cccccc"
+                    anchorX="center"
+                    anchorY="middle"
+                >
+                    {`<${troop.owner.charAt(0).toUpperCase() + troop.owner.slice(1)}>`}
                 </Text>
             </Billboard>
         </>
