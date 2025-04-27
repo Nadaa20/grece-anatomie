@@ -76,3 +76,27 @@ button:active {
     padding: 10px;
     border: 1px solid black;
 }
+
+.territory-buttons {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.territory-buttons button {
+    padding: 0.5rem 1rem;
+    border: 2px solid #4a4a4a;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.territory-buttons button:hover {
+    background-color: #e0e0e0;
+}
+
+.territory-buttons button.active {
+    background-color: #4a4a4a;
+    color: white;
+}
