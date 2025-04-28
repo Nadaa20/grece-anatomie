@@ -21,15 +21,8 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
     const [currentGameId, setCurrentGameId] = useState<number | null>(null);
     const [error, setError] = useState<string>('');
     const [isWaiting, setIsWaiting] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        if (!socket) {
-            setIsLoading(true);
-            return;
-        }
-
-        setIsLoading(false);
 
         socket.on('saved_games', (data: { games: Game[] }) => {
             setSavedGames(data.games);
@@ -71,37 +64,28 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
     }, [currentGameId, socket, onGameReady]);
 
     const handleUsernameSubmit = (username: string) => {
-        if (!socket) return;
         console.log('Soumission du nom d\'utilisateur:', username);
         socket.emit('submit_username', username);
         setUsername(username);
     };
 
     const handleTestGame = () => {
-        if (!socket) return;
         console.log('Clic sur le bouton de test');
         socket.emit('test_game');
     };
 
     const handleCreateNewGame = () => {
-        if (!socket) return;
         socket.emit('create_new_game');
     };
 
     const handleJoinGame = (gameId: number) => {
-        if (!socket) return;
         socket.emit('join_existing_game', gameId);
     };
 
-    if (isLoading) {
-        return <div>Connexion au serveur en cours...</div>;
-    }
-
     if (!username) {
-        return <UsernameForm
-            onSubmit={handleUsernameSubmit}
-            error={error}
-            onTestGame={handleTestGame}
+        return <UsernameForm 
+        onSubmit={handleUsernameSubmit} 
+        error={error} 
         />;
     }
 
