@@ -317,12 +317,13 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
 
 export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType }) => {
     const [activeTab, setActiveTab] = useState<TabType>('Batiments');
+    const [showTroopTrainingModal, setShowTroopTrainingModal] = useState(false);
     const [localData, setLocalData] = useState<ParcheminsData | null>(data);
     const localDataRef = useRef<ParcheminsData | null>(data);
-    const [showTroopTrainingModal, setShowTroopTrainingModal] = useState(false);
-    const troopManager = useTroopManager();
     const cityManager = useCityManager();
+    const troopManager = useTroopManager();
 
+    // Mettre à jour les données locales quand les props changent
     useEffect(() => {
         setLocalData(data);
         localDataRef.current = data;

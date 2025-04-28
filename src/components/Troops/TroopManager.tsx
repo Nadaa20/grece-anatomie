@@ -348,15 +348,15 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const addTroop = (type: string, hexCoord: HexCoordinates) => {
         // Trouver la ville la plus proche pour déterminer le territoire
         const cities = [
-            { name: 'Athens', hexCoord: { row: 59, col: 62 } },
-            { name: 'Sparta', hexCoord: { row: 77, col: 37 } },
-            { name: 'Thebes', hexCoord: { row: 48, col: 48 } }
+            { name: 'Athens', territory: 'Attica', hexCoord: { row: 59, col: 62 } },
+            { name: 'Sparta', territory: 'Pelopponesus', hexCoord: { row: 77, col: 37 } },
+            { name: 'Thebes', territory: 'Thessaly', hexCoord: { row: 48, col: 48 } }
         ];
 
         const cityTerritory = cities.find(city =>
             city.hexCoord.row === hexCoord.row &&
             city.hexCoord.col === hexCoord.col
-        )?.name || 'Athens'; // Par défaut Athens si pas trouvé
+        )?.territory || 'Attica'; // Par défaut Attica si pas trouvé
 
         let newTroop: Troop;
         switch (type) {

@@ -64,9 +64,10 @@ const getWarfogIntensity = (row: number, col: number, commanders: Troop[], curre
     const playerCommanders = commanders.filter(commander => commander.owner === currentTerritory);
     if (playerCommanders.length === 0) return 1;
 
-    const minDistance = Math.min(...playerCommanders.map(commander =>
-        calculateDistance(row, col, commander.hexCoord.row, commander.hexCoord.col)
-    ));
+    const minDistance = Math.min(...playerCommanders.map(commander => {
+        // Utiliser la position de la troupe elle-même car c'est elle qui contient les autres troupes
+        return calculateDistance(row, col, commander.hexCoord.row, commander.hexCoord.col);
+    }));
 
     if (minDistance <= 1) return 0;
     return 1;
