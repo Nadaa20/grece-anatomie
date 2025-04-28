@@ -399,6 +399,15 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
                     return prevData;
                 }
 
+                // Mettre à jour les travailleurs dans la ville
+                const city = cityManager.cities.find(c => c.name === event.detail.hexagonName);
+                if (city) {
+                    if (!city.workers) {
+                        city.workers = {};
+                    }
+                    city.workers[event.detail.buildingId] = newWorkers;
+                }
+
                 const newData = {
                     ...prevData,
                     Travailleurs: {

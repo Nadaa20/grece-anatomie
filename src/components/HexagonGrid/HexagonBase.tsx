@@ -138,7 +138,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                     Travailleurs: Object.entries(batimentsData).reduce((acc, [buildingId, quantity]) => {
                         const building = BUILDING_TYPES.find((b: BuildingType) => b.id === buildingId);
                         if (building?.isActive) {
-                            acc[buildingId] = 0;
+                            acc[buildingId] = city?.workers?.[buildingId] || 0;
                         }
                         return acc;
                     }, {} as { [key: string]: number })
