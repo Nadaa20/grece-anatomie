@@ -543,13 +543,13 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
         }
         city.troops[troopId] = (city.troops[troopId] || 0) + 1;
 
-        // Déduire les ressources
-        window.dispatchEvent(new CustomEvent('train-troop', {
-            detail: {
-                troopId,
-                hexagonName: localData?.hexagonName
+        // Déduire les ressources (sauf la population qui est déjà déduite dans addTroop)
+        Object.entries(troopType.cost).forEach(([resource, cost]) => {
+            if (resource !== 'population' && cost) {
+                (localData!.Ressources as any)[resource] -= cost;
             }
-        }));
+        });
+
         setShowTroopTrainingModal(false);
     };
 
