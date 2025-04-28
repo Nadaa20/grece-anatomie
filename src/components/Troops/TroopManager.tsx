@@ -2,6 +2,7 @@ import React, { useState, useContext, createContext, useRef, useCallback, useMem
 import { TroopModel } from './TroopModel';
 import { Troop, HexCoordinates, PathNode } from '../../entities/Troop';
 import { Hoplite, Frondeur, Messager, Commandant, Squad } from '../../entities/TroopTypes';
+import { usePlayer } from '../../contexts/PlayerContext';
 
 interface TroopManagerContextType {
     troops: Troop[];
@@ -42,6 +43,7 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const [targetTroopId, setTargetTroopId] = useState<string | null>(null);
     const [pendingMoves, setPendingMoves] = useState<{ id: string, target: HexCoordinates }[]>([]);
     const [currentTroopCreation, setCurrentTroopCreation] = useState<{ hexCoord: HexCoordinates, type: string, currentIndex: number } | null>(null);
+    const { currentTerritory } = usePlayer();
 
     // Effet pour initialiser les commandants
     useEffect(() => {
@@ -60,7 +62,14 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
             return new Commandant(commandantHexCoord, city.territory);
         });
 
-        setTroops(initialCommandants);
+        // Ajouter 3 hoplites de Thessaly près d'Athènes
+        const enemyHoplites = [
+            { row: 58, col: 61 }, // En haut à gauche d'Athènes
+            { row: 58, col: 63 }, // En haut à droite d'Athènes
+            { row: 60, col: 62 }  // En bas d'Athènes
+        ].map(coord => new Hoplite(coord, 'Thessaly'));
+
+        setTroops([...initialCommandants, ...enemyHoplites]);
     }, []);
 
     // Effet pour gérer les déplacements en attente
@@ -116,12 +125,87 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         return () => clearInterval(moveInterval);
     }, [isMoving, movingTroop, currentPathIndex, path, troops]);
 
+    // Détermine si une troupe/escouade contient un commandant
+    const containsCommandant = (troop: Troop): boolean => {
+        if (troop.type === 'Commandant') return true;
+        if (troop.isSquad && troop.troops) {
+            return troop.troops.some(t => t.type === 'Commandant');
+        }
+        return false;
+    };
+
+    // Détermine si une troupe/escouade est adjacente à un commandant
+    const isAdjacentToCommandant = (troop: Troop): boolean => {
+        const commandants = troops.filter(t => t.type === 'Commandant');
+        return commandants.some(cmd => {
+            const neighbors = getNeighbors(cmd.hexCoord);
+            return neighbors.some(coord => coord.row === troop.hexCoord.row && coord.col === troop.hexCoord.col);
+        });
+    };
+
+    // Détermine si une troupe/escouade est déplaçable
+    const isTroopMovable = (troop: Troop): boolean => {
+        // Vérifier d'abord si la troupe appartient au territoire du joueur actuel
+        if (troop.owner !== currentTerritory) {
+            return false;
+        }
+
+        // Si elle appartient au bon territoire, vérifier les conditions de déplacement
+        if (troop.type === 'Commandant') return true;
+        if (containsCommandant(troop)) return true;
+        if (isAdjacentToCommandant(troop)) return true;
+
+        return false;
+    };
+
+    // Restreindre la sélection
     const selectTroop = (id: string) => {
+        const troop = troops.find(t => t.id === id);
+        if (!troop || !isTroopMovable(troop)) {
+            setSelectedTroop(null);
+            return;
+        }
+
+        // Si c'est un messager avec un message, on vérifie si un commandant est adjacent
+        if (troop.type === 'Messager' && typeof (troop as any).getMessage === 'function') {
+            const message = (troop as any).getMessage();
+            if (message) {
+                // Vérifier si un commandant est adjacent
+                const neighbors = getNeighbors(troop.hexCoord);
+                const hasAdjacentCommandant = troops.some(t =>
+                    t.type === 'Commandant' &&
+                    neighbors.some(n => n.row === t.hexCoord.row && n.col === t.hexCoord.col)
+                );
+
+                if (hasAdjacentCommandant) {
+                    window.dispatchEvent(new CustomEvent('show-message-read', {
+                        detail: { message, messengerId: id }
+                    }));
+                } else {
+                    console.log("Vous devez être un commandant adjacent pour lire le message");
+                }
+                return;
+            }
+        }
+
         if (selectedTroop === id) {
             setSelectedTroop(null);
         } else {
             setSelectedTroop(id);
         }
+    };
+
+    // Restreindre le déplacement
+    const startMoving = (id: string, target: HexCoordinates) => {
+        const troop = troops.find(t => t.id === id);
+        if (!troop || !isTroopMovable(troop)) return;
+        const newPath = findPath(troop.hexCoord, target);
+        if (newPath.length === 0) return;
+        setPath(newPath);
+        setIsMoving(true);
+        setMovingTroop(id);
+        setCurrentPathIndex(0);
+        setSelectedTroop(null);
     };
 
     const moveTroop = (id: string, newHexCoord: HexCoordinates) => {
@@ -302,18 +386,55 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         return [];
     };
 
-    const startMoving = (id: string, target: HexCoordinates) => {
-        const troop = troops.find(t => t.id === id);
-        if (!troop) return;
+    useEffect(() => {
+        const handleMoveMessenger = (event: CustomEvent<{ messengerId: string; target: HexCoordinates }>) => {
+            startMoving(event.detail.messengerId, event.detail.target);
+        };
 
-        const path = findPath(troop.hexCoord, target);
-        if (path.length > 0) {
-            setPath(path);
-            setMovingTroop(id);
-            setIsMoving(true);
-            setCurrentPathIndex(0);
-        }
-    };
+        window.addEventListener('move-messenger', handleMoveMessenger as EventListener);
+
+        // Ajout du listener pour l'enregistrement du message
+        const handleMessengerMessage = (event: CustomEvent<{ messengerId: string; message: string }>) => {
+            setTroops(prevTroops => {
+                return prevTroops.map(troop => {
+                    if (troop.id === event.detail.messengerId && troop.type === 'Messager' && typeof (troop as any).setMessage === 'function') {
+                        (troop as any).setMessage(event.detail.message);
+                    }
+                    return troop;
+                });
+            });
+        };
+        window.addEventListener('messenger-message', handleMessengerMessage as EventListener);
+
+        // Ajout du listener pour récupérer le message du messager
+        const handleGetMessengerMessage = (event: CustomEvent<{ messengerId: string }>) => {
+            const messenger = troops.find(t => t.id === event.detail.messengerId && t.type === 'Messager');
+            if (messenger && typeof (messenger as any).getMessage === 'function') {
+                console.log(`Message stocké dans le messager : ${(messenger as any).getMessage()}`);
+            }
+        };
+        window.addEventListener('get-messenger-message', handleGetMessengerMessage as EventListener);
+
+        // Ajout du listener pour effacer le message après lecture
+        const handleMessageReadClose = (event: CustomEvent<{ messengerId: string }>) => {
+            setTroops(prevTroops => {
+                return prevTroops.map(troop => {
+                    if (troop.id === event.detail.messengerId && troop.type === 'Messager' && typeof (troop as any).setMessage === 'function') {
+                        (troop as any).setMessage('');
+                    }
+                    return troop;
+                });
+            });
+        };
+        window.addEventListener('message-read-close', handleMessageReadClose as EventListener);
+
+        return () => {
+            window.removeEventListener('move-messenger', handleMoveMessenger as EventListener);
+            window.removeEventListener('messenger-message', handleMessengerMessage as EventListener);
+            window.removeEventListener('get-messenger-message', handleGetMessengerMessage as EventListener);
+            window.removeEventListener('message-read-close', handleMessageReadClose as EventListener);
+        };
+    }, [startMoving, troops]);
 
     const getAdjacentHexes = (hexCoord: HexCoordinates): HexCoordinates[] => {
         const isEvenRow = hexCoord.row % 2 === 0;
@@ -348,15 +469,15 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const addTroop = (type: string, hexCoord: HexCoordinates) => {
         // Trouver la ville la plus proche pour déterminer le territoire
         const cities = [
-            { name: 'Athens', hexCoord: { row: 59, col: 62 } },
-            { name: 'Sparta', hexCoord: { row: 77, col: 37 } },
-            { name: 'Thebes', hexCoord: { row: 48, col: 48 } }
+            { name: 'Athens', territory: 'Attica', hexCoord: { row: 59, col: 62 } },
+            { name: 'Sparta', territory: 'Pelopponesus', hexCoord: { row: 77, col: 37 } },
+            { name: 'Thebes', territory: 'Thessaly', hexCoord: { row: 48, col: 48 } }
         ];
 
         const cityTerritory = cities.find(city =>
             city.hexCoord.row === hexCoord.row &&
             city.hexCoord.col === hexCoord.col
-        )?.name || 'Athens'; // Par défaut Athens si pas trouvé
+        )?.territory || 'Attica'; // Par défaut Attica si pas trouvé
 
         let newTroop: Troop;
         switch (type) {
