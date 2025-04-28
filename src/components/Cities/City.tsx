@@ -30,6 +30,9 @@ export interface City {
     workers?: {
         [buildingId: string]: number;
     };
+    troops?: {
+        [troopId: string]: number;
+    };
 }
 
 interface CityProps {

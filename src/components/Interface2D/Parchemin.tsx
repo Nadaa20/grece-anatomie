@@ -537,6 +537,12 @@ export const Parchemin: React.FC<ParcheminProps> = ({ onClose, data, hexagonType
         // Créer la troupe
         troopManager.addTroop(troopId, city.hexCoord);
 
+        // Mettre à jour les troupes dans la ville
+        if (!city.troops) {
+            city.troops = {};
+        }
+        city.troops[troopId] = (city.troops[troopId] || 0) + 1;
+
         // Déduire les ressources
         window.dispatchEvent(new CustomEvent('train-troop', {
             detail: {

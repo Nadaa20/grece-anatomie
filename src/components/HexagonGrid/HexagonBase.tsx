@@ -128,7 +128,7 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
                 data: {
                     hexagonName: city?.name || name || "Unknown",
                     Batiments: batimentsData,
-                    Troupes: troopsData,
+                    Troupes: city?.troops || troopsData,
                     Quetes: {},
                     Ressources: city?.resources ? {
                         ...city.resources,
