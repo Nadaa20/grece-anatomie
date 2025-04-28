@@ -262,6 +262,9 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                 return distance <= 1;
             });
 
+            // Debug: afficher la structure des troupes
+            console.log('nearbyTroops', nearbyTroops);
+
             return nearbyTroops.length === 0 ? (
                 <p>Aucune troupe présente autour de cette ville</p>
             ) : (
@@ -272,7 +275,9 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                             <div key={troop.id} className="troupe-item">
                                 <span className="troupe-emoji">{troopType?.emoji}</span>
                                 <span className="troupe-nom">
-                                    {troop.isSquad ? 'Escouade' : troopType?.name}
+                                    {troop.isSquad
+                                        ? 'Escouade'
+                                        : troopType?.name || troop.type || 'Type inconnu'}
                                     {troop.isSquad && troop.troops && (
                                         <div className="squad-content">
                                             {Object.entries(
@@ -285,7 +290,7 @@ const TabContent: React.FC<{ type: TabType; data: ParcheminsData; hexagonType: H
                                                 return (
                                                     <div key={type} className="squad-troop">
                                                         <span className="squad-troop-emoji">{typeInfo?.emoji}</span>
-                                                        <span className="squad-troop-name">{typeInfo?.name}</span>
+                                                        <span className="squad-troop-name">{typeInfo?.name || type || 'Type inconnu'}</span>
                                                         <span className="squad-troop-count">x{count}</span>
                                                     </div>
                                                 );
