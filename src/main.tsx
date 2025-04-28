@@ -8,12 +8,19 @@ const RootComponent: React.FC = () => {
     const [currentGameId, setCurrentGameId] = useState<number | null>(null);
 
     const handleGameReady = (gameId: number) => {
+        console.log('handleGameReady appelé avec gameId:', gameId);
         setCurrentGameId(gameId);
     };
 
+    console.log('État actuel de currentGameId:', currentGameId);
+
     return (
         <SocketProvider>
-            {currentGameId ? <App /> : <WaitingRoom onGameReady={handleGameReady} />}
+            {currentGameId ? (
+                <App />
+            ) : (
+                <WaitingRoom onGameReady={handleGameReady} />
+            )}
         </SocketProvider>
     );
 };

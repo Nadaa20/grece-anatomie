@@ -44,7 +44,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
         });
 
         socket.on('show_game_map', (data: { status: string, players: number[], partie_id: number }) => {
-            console.log('Affichage de la carte du jeu');
+            console.log('Événement show_game_map reçu:', data);
             onGameReady(data.partie_id);
         });
 
@@ -63,11 +63,13 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
     }, [currentGameId, socket, onGameReady]);
 
     const handleUsernameSubmit = (username: string) => {
+        console.log('Soumission du nom d\'utilisateur:', username);
         socket.emit('submit_username', username);
         setUsername(username);
     };
 
     const handleTestGame = () => {
+        console.log('Clic sur le bouton de test');
         socket.emit('test_game');
     };
 
