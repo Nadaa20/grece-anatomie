@@ -149,6 +149,29 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
             setSelectedTroop(null);
             return;
         }
+
+        // Si c'est un messager avec un message, on vérifie si un commandant est adjacent
+        if (troop.type === 'Messager' && typeof (troop as any).getMessage === 'function') {
+            const message = (troop as any).getMessage();
+            if (message) {
+                // Vérifier si un commandant est adjacent
+                const neighbors = getNeighbors(troop.hexCoord);
+                const hasAdjacentCommandant = troops.some(t =>
+                    t.type === 'Commandant' &&
+                    neighbors.some(n => n.row === t.hexCoord.row && n.col === t.hexCoord.col)
+                );
+
+                if (hasAdjacentCommandant) {
+                    window.dispatchEvent(new CustomEvent('show-message-read', {
+                        detail: { message, messengerId: id }
+                    }));
+                } else {
+                    console.log("Vous devez être un commandant adjacent pour lire le message");
+                }
+                return;
+            }
+        }
+
         if (selectedTroop === id) {
             setSelectedTroop(null);
         } else {
@@ -367,11 +390,35 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         };
         window.addEventListener('messenger-message', handleMessengerMessage as EventListener);
 
+        // Ajout du listener pour récupérer le message du messager
+        const handleGetMessengerMessage = (event: CustomEvent<{ messengerId: string }>) => {
+            const messenger = troops.find(t => t.id === event.detail.messengerId && t.type === 'Messager');
+            if (messenger && typeof (messenger as any).getMessage === 'function') {
+                console.log(`Message stocké dans le messager : ${(messenger as any).getMessage()}`);
+            }
+        };
+        window.addEventListener('get-messenger-message', handleGetMessengerMessage as EventListener);
+
+        // Ajout du listener pour effacer le message après lecture
+        const handleMessageReadClose = (event: CustomEvent<{ messengerId: string }>) => {
+            setTroops(prevTroops => {
+                return prevTroops.map(troop => {
+                    if (troop.id === event.detail.messengerId && troop.type === 'Messager' && typeof (troop as any).setMessage === 'function') {
+                        (troop as any).setMessage('');
+                    }
+                    return troop;
+                });
+            });
+        };
+        window.addEventListener('message-read-close', handleMessageReadClose as EventListener);
+
         return () => {
             window.removeEventListener('move-messenger', handleMoveMessenger as EventListener);
             window.removeEventListener('messenger-message', handleMessengerMessage as EventListener);
+            window.removeEventListener('get-messenger-message', handleGetMessengerMessage as EventListener);
+            window.removeEventListener('message-read-close', handleMessageReadClose as EventListener);
         };
-    }, [startMoving]);
+    }, [startMoving, troops]);
 
     const getAdjacentHexes = (hexCoord: HexCoordinates): HexCoordinates[] => {
         const isEvenRow = hexCoord.row % 2 === 0;

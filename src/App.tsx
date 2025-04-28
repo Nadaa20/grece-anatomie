@@ -35,8 +35,9 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const handleShowMessageRead = (event: CustomEvent<{ message: string }>) => {
+    const handleShowMessageRead = (event: CustomEvent<{ message: string; messengerId: string }>) => {
       setCurrentMessageToRead(event.detail.message);
+      setCurrentMessenger({ id: event.detail.messengerId, target: { row: 0, col: 0 } });
       setShowMessageRead(true);
     };
     window.addEventListener('show-message-read', handleShowMessageRead as EventListener);
@@ -70,6 +71,13 @@ const App: React.FC = () => {
           target: currentMessenger.target
         }
       }));
+
+      // Afficher le message stocké dans le messager
+      window.dispatchEvent(new CustomEvent('get-messenger-message', {
+        detail: {
+          messengerId: currentMessenger.id
+        }
+      }));
     }
     setShowMessageInput(false);
     setCurrentMessenger(null);
@@ -77,6 +85,17 @@ const App: React.FC = () => {
 
   const handleMessageInputClose = () => {
     setShowMessageInput(false);
+    setCurrentMessenger(null);
+  };
+
+  const handleMessageReadClose = () => {
+    if (currentMessenger) {
+      window.dispatchEvent(new CustomEvent('message-read-close', {
+        detail: { messengerId: currentMessenger.id }
+      }));
+    }
+    setShowMessageRead(false);
+    setCurrentMessageToRead(null);
     setCurrentMessenger(null);
   };
 
@@ -129,8 +148,8 @@ const App: React.FC = () => {
 
       {showMessageRead && currentMessageToRead !== null && (
         <MessageInputModal
-          onConfirm={() => setShowMessageRead(false)}
-          onClose={() => setShowMessageRead(false)}
+          onConfirm={handleMessageReadClose}
+          onClose={handleMessageReadClose}
           initialMessage={currentMessageToRead}
           readOnly={true}
         />

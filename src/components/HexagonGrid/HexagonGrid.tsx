@@ -71,8 +71,9 @@ const getWarfogIntensity = (row: number, col: number, commanders: Troop[], curre
             })
     ];
     const playerCommandantPositions = allCommandantPositions.filter(pos => {
-        // On suppose que tous les commandants sont du joueur courant
-        return true;
+        // Ne prendre en compte que les commandants du territoire actuel
+        const troop = troops.find(t => t.hexCoord.row === pos.row && t.hexCoord.col === pos.col);
+        return troop && troop.owner === currentTerritory;
     });
     if (playerCommandantPositions.length === 0) return 1;
 
