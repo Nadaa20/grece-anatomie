@@ -25,7 +25,12 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position, war
 
     // Si c'est une escouade, afficher jusqu'à 3 troupes en cercle
     const squadTroops = troop.isSquad && troop.troops ? troop.troops.slice(0, 3) : [];
-    const radius = 0.5; // Rayon du cercle pour positionner les troupes
+    const radius = 0.5;
+
+    // Calculer la vie totale pour l'affichage
+    const totalHealth = troop.getTotalHealth();
+    const maxHealth = troop.getTotalMaxHealth();
+    const healthPercentage = (totalHealth / maxHealth) * 100;
 
     return (
         <>
@@ -47,7 +52,7 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position, war
                         key={squadTroop.id}
                         position={[x, position[1], z]}
                         troop={squadTroop}
-                        scale={troopScale} // Même échelle que les autres troupes
+                        scale={troopScale}
                     />
                 );
             })}
@@ -88,6 +93,30 @@ export const TroopDisplay: React.FC<TroopDisplayProps> = ({ troop, position, war
                 >
                     {`<${troop.owner.charAt(0).toUpperCase() + troop.owner.slice(1)}>`}
                 </Text>
+
+                {/* Barre de vie */}
+                <group position={[0, -0.4, 0.01]}>
+                    {/* Fond de la barre de vie */}
+                    <mesh position={[0, 0, 0]}>
+                        <planeGeometry args={[1.4, 0.2]} />
+                        <meshBasicMaterial color="#333333" />
+                    </mesh>
+                    {/* Barre de vie actuelle */}
+                    <mesh position={[-(1.4 * (1 - healthPercentage / 100)) / 2, 0, 0.01]}>
+                        <planeGeometry args={[1.4 * (healthPercentage / 100), 0.2]} />
+                        <meshBasicMaterial color={healthPercentage > 50 ? "#4CAF50" : healthPercentage > 25 ? "#FFC107" : "#F44336"} />
+                    </mesh>
+                    {/* Texte de la vie */}
+                    <Text
+                        position={[0, 0, 0.02]}
+                        fontSize={0.15}
+                        color="#ffffff"
+                        anchorX="center"
+                        anchorY="middle"
+                    >
+                        {`${Math.round(totalHealth)}/${maxHealth}`}
+                    </Text>
+                </group>
             </Billboard>
         </>
     );

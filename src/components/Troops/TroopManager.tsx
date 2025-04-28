@@ -92,16 +92,24 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
                 setIsMoving(false);
                 setMovingTroop(null);
                 setPath([]);
-                clearInterval(moveInterval);
                 return;
             }
 
             const nextPosition = path[currentPathIndex];
-            const targetTroop = getTroopAtHex(nextPosition.row, nextPosition.col);
+            const targetTroop = troops.find(t =>
+                t.hexCoord.row === nextPosition.row &&
+                t.hexCoord.col === nextPosition.col &&
+                t.id !== troop.id
+            );
 
             if (targetTroop) {
-                // Si la position cible est occupée, fusionner les troupes
-                moveTroop(movingTroop, nextPosition);
+                // Si la position cible est occupée par une troupe ennemie, engager le combat
+                if (targetTroop.owner !== troop.owner) {
+                    handleCombat(troop, targetTroop);
+                } else {
+                    // Si c'est une troupe alliée, fusionner les troupes
+                    moveTroop(movingTroop, nextPosition);
+                }
                 setIsMoving(false);
                 setMovingTroop(null);
                 setPath([]);
@@ -474,24 +482,29 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
             { name: 'Thebes', territory: 'Thessaly', hexCoord: { row: 48, col: 48 } }
         ];
 
-        const cityTerritory = cities.find(city =>
+        const city = cities.find(city =>
             city.hexCoord.row === hexCoord.row &&
             city.hexCoord.col === hexCoord.col
-        )?.territory || 'Attica'; // Par défaut Attica si pas trouvé
+        );
+
+        if (!city) {
+            console.error("Aucune ville trouvée à cette position");
+            return;
+        }
 
         let newTroop: Troop;
         switch (type) {
-            case 'hoplite':
-                newTroop = new Hoplite(hexCoord, cityTerritory);
+            case 'Hoplite':
+                newTroop = new Hoplite(hexCoord, city.territory, city.name);
                 break;
-            case 'slinger':
-                newTroop = new Frondeur(hexCoord, cityTerritory);
+            case 'Slinger':
+                newTroop = new Frondeur(hexCoord, city.territory, city.name);
                 break;
-            case 'messenger':
-                newTroop = new Messager(hexCoord, cityTerritory);
+            case 'Messenger':
+                newTroop = new Messager(hexCoord, city.territory, city.name);
                 break;
-            case 'commandant':
-                newTroop = new Commandant(hexCoord, cityTerritory);
+            case 'Commandant':
+                newTroop = new Commandant(hexCoord, city.territory, city.name);
                 break;
             default:
                 console.error(`Type de troupe inconnu : ${type}`);
@@ -537,6 +550,98 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
 
     const getTroopAtHex = (row: number, col: number): Troop | undefined => {
         return troops.find(t => t.hexCoord.row === row && t.hexCoord.col === col);
+    };
+
+    const handleCombat = (attacker: Troop, defender: Troop) => {
+        // Continuer le combat jusqu'à ce qu'une des troupes soit éliminée
+        while (attacker.isAlive() && defender.isAlive()) {
+            // Calculer les dégâts totaux
+            const attackerDamage = attacker.getTotalDamage();
+            const defenderDamage = defender.getTotalDamage();
+
+            // Appliquer les dégâts
+            if (attacker.isSquad && attacker.troops) {
+                // Pour une escouade, appliquer les dégâts à une troupe à la fois
+                let remainingDamage = defenderDamage;
+                for (let i = 0; i < attacker.troops.length && remainingDamage > 0; i++) {
+                    const troop = attacker.troops[i];
+                    if (troop.isAlive()) {
+                        const damageToTake = Math.min(remainingDamage, troop.health);
+                        troop.takeDamage(damageToTake);
+                        remainingDamage -= damageToTake;
+                    }
+                }
+                // Supprimer les troupes mortes
+                attacker.troops = attacker.troops.filter(troop => troop.isAlive());
+            } else {
+                attacker.takeDamage(defenderDamage);
+            }
+
+            if (defender.isSquad && defender.troops) {
+                // Pour une escouade, appliquer les dégâts à une troupe à la fois
+                let remainingDamage = attackerDamage;
+                for (let i = 0; i < defender.troops.length && remainingDamage > 0; i++) {
+                    const troop = defender.troops[i];
+                    if (troop.isAlive()) {
+                        const damageToTake = Math.min(remainingDamage, troop.health);
+                        troop.takeDamage(damageToTake);
+                        remainingDamage -= damageToTake;
+                    }
+                }
+                // Supprimer les troupes mortes
+                defender.troops = defender.troops.filter(troop => troop.isAlive());
+            } else {
+                defender.takeDamage(attackerDamage);
+            }
+        }
+
+        // Mettre à jour l'état des troupes
+        setTroops(prevTroops => {
+            const newTroops = [...prevTroops];
+
+            // Supprimer les troupes mortes et libérer la population
+            if (!attacker.isAlive()) {
+                if (attacker.isSquad && attacker.troops) {
+                    // Pour une escouade, libérer la population de chaque troupe morte
+                    attacker.troops.forEach(troop => {
+                        window.dispatchEvent(new CustomEvent('free-population', {
+                            detail: { cityName: troop.originCity }
+                        }));
+                    });
+                } else {
+                    window.dispatchEvent(new CustomEvent('free-population', {
+                        detail: { cityName: attacker.originCity }
+                    }));
+                }
+                newTroops.splice(newTroops.findIndex(t => t.id === attacker.id), 1);
+            }
+            if (!defender.isAlive()) {
+                if (defender.isSquad && defender.troops) {
+                    // Pour une escouade, libérer la population de chaque troupe morte
+                    defender.troops.forEach(troop => {
+                        window.dispatchEvent(new CustomEvent('free-population', {
+                            detail: { cityName: troop.originCity }
+                        }));
+                    });
+                } else {
+                    window.dispatchEvent(new CustomEvent('free-population', {
+                        detail: { cityName: defender.originCity }
+                    }));
+                }
+                newTroops.splice(newTroops.findIndex(t => t.id === defender.id), 1);
+            }
+
+            // Si l'attaquant a survécu, le déplacer sur la case du défenseur
+            if (attacker.isAlive()) {
+                const attackerIndex = newTroops.findIndex(t => t.id === attacker.id);
+                if (attackerIndex !== -1) {
+                    attacker.moveTo(defender.hexCoord);
+                    newTroops[attackerIndex] = attacker;
+                }
+            }
+
+            return newTroops;
+        });
     };
 
     const value = {

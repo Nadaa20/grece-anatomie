@@ -114,8 +114,20 @@ export const CityManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             cityManager.buildBuilding(hexagonName, buildingId, cost);
         };
 
+        const handleFreePopulation = (event: CustomEvent<{ cityName: string }>) => {
+            const { cityName } = event.detail;
+            const city = cityManager.cities.find(c => c.name === cityName);
+            if (city) {
+                city.population = Math.max(0, city.population - 1);
+            }
+        };
+
         window.addEventListener('build-building', handleBuildBuilding as EventListener);
-        return () => window.removeEventListener('build-building', handleBuildBuilding as EventListener);
+        window.addEventListener('free-population', handleFreePopulation as EventListener);
+        return () => {
+            window.removeEventListener('build-building', handleBuildBuilding as EventListener);
+            window.removeEventListener('free-population', handleFreePopulation as EventListener);
+        };
     }, []);
 
     return <CityContext.Provider value={cityManager}>{children}</CityContext.Provider>;

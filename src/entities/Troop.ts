@@ -1,7 +1,8 @@
-import { BoxGeometry, CylinderGeometry, Group } from 'three';
+import { Group, BoxGeometry, CylinderGeometry } from 'three';
 import { v4 as uuidv4 } from 'uuid';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { TERRITORY_COLORS } from '../components/HexagonGrid/constants';
+import { TROOP_TYPES, TroopType } from '../components/Interface2D/TroopTypes';
 
 export interface HexCoordinates {
     row: number;
@@ -23,13 +24,30 @@ export class Troop {
     public isSquad: boolean;
     public troops?: Troop[];
     private model: Group | null = null;
+    public health: number;
+    public maxHealth: number;
+    public damage: number;
+    public originCity: string;
 
-    constructor(hexCoord: HexCoordinates, owner: string, type: string) {
+    constructor(hexCoord: HexCoordinates, owner: string, type: string, originCity: string) {
         this.id = uuidv4();
         this.hexCoord = hexCoord;
         this.owner = owner;
         this.type = type;
         this.isSquad = false;
+        this.originCity = originCity;
+        
+        // Initialiser les statistiques de combat
+        const troopType = TROOP_TYPES.find((t: TroopType) => t.id === type);
+        if (troopType) {
+            this.maxHealth = troopType.stats.health;
+            this.health = this.maxHealth;
+            this.damage = troopType.stats.attack;
+        } else {
+            this.maxHealth = 10;
+            this.health = this.maxHealth;
+            this.damage = 5;
+        }
     }
 
     public moveTo(newHexCoord: HexCoordinates): void {
@@ -48,7 +66,8 @@ export class Troop {
         if (this.model) return this.model;
 
         const loader = new GLTFLoader();
-        const modelPath = `/models/${this.type}/${this.type}.gltf`;
+        const capitalizedType = this.type.charAt(0).toUpperCase() + this.type.slice(1);
+        const modelPath = `/models/${capitalizedType}/${capitalizedType}.gltf`;
         
         try {
             const gltf = await loader.loadAsync(modelPath);
@@ -58,5 +77,34 @@ export class Troop {
             console.error(`Erreur lors du chargement du modèle pour ${this.type}:`, error);
             return null;
         }
+    }
+
+    public takeDamage(amount: number): void {
+        this.health = Math.max(0, this.health - amount);
+    }
+
+    public isAlive(): boolean {
+        return this.health > 0;
+    }
+
+    public getTotalDamage(): number {
+        if (this.isSquad && this.troops) {
+            return this.troops.reduce((total, troop) => total + troop.damage, 0);
+        }
+        return this.damage;
+    }
+
+    public getTotalHealth(): number {
+        if (this.isSquad && this.troops) {
+            return this.troops.reduce((total, troop) => total + troop.health, 0);
+        }
+        return this.health;
+    }
+
+    public getTotalMaxHealth(): number {
+        if (this.isSquad && this.troops) {
+            return this.troops.reduce((total, troop) => total + troop.maxHealth, 0);
+        }
+        return this.maxHealth;
     }
 } 
