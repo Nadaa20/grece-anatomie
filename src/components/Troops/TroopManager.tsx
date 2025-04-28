@@ -306,14 +306,41 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         const troop = troops.find(t => t.id === id);
         if (!troop) return;
 
-        const path = findPath(troop.hexCoord, target);
-        if (path.length > 0) {
-            setPath(path);
-            setMovingTroop(id);
-            setIsMoving(true);
-            setCurrentPathIndex(0);
-        }
+        const newPath = findPath(troop.hexCoord, target);
+        if (newPath.length === 0) return;
+
+        setPath(newPath);
+        setIsMoving(true);
+        setMovingTroop(id);
+        setCurrentPathIndex(0);
+        setSelectedTroop(null);
     };
+
+    useEffect(() => {
+        const handleMoveMessenger = (event: CustomEvent<{ messengerId: string; target: HexCoordinates }>) => {
+            startMoving(event.detail.messengerId, event.detail.target);
+        };
+
+        window.addEventListener('move-messenger', handleMoveMessenger as EventListener);
+
+        // Ajout du listener pour l'enregistrement du message
+        const handleMessengerMessage = (event: CustomEvent<{ messengerId: string; message: string }>) => {
+            setTroops(prevTroops => {
+                return prevTroops.map(troop => {
+                    if (troop.id === event.detail.messengerId && troop.type === 'Messager' && typeof (troop as any).setMessage === 'function') {
+                        (troop as any).setMessage(event.detail.message);
+                    }
+                    return troop;
+                });
+            });
+        };
+        window.addEventListener('messenger-message', handleMessengerMessage as EventListener);
+
+        return () => {
+            window.removeEventListener('move-messenger', handleMoveMessenger as EventListener);
+            window.removeEventListener('messenger-message', handleMessengerMessage as EventListener);
+        };
+    }, [startMoving]);
 
     const getAdjacentHexes = (hexCoord: HexCoordinates): HexCoordinates[] => {
         const isEvenRow = hexCoord.row % 2 === 0;

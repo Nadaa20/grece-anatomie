@@ -18,12 +18,22 @@ export class Frondeur extends Troop {
 }
 
 export class Messager extends Troop {
+    private message: string = "";
+
     constructor(hexCoord: HexCoordinates, owner: string) {
         super(hexCoord, owner, 'Messager');
     }
 
     public getGeometry(): BoxGeometry {
         return new BoxGeometry(1, 1, 1);
+    }
+
+    public getMessage(): string {
+        return this.message;
+    }
+
+    public setMessage(message: string): void {
+        this.message = message;
     }
 }
 

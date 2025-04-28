@@ -2,15 +2,48 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import Game from "./components/Game/Game";
 import { usePlayer } from "./contexts/PlayerContext";
+import { MessageInputModal } from "./components/Interface2D/MessageInputModal";
+import { HexCoordinates } from "./entities/Troop";
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<"environment" | "territory">("environment");
   const [warfogEnabled, setWarfogEnabled] = useState(true);
   const { currentTerritory, setCurrentTerritory } = usePlayer();
+  const [showMessageInput, setShowMessageInput] = useState(false);
+  const [currentMessenger, setCurrentMessenger] = useState<{ id: string; target: HexCoordinates } | null>(null);
+  const [showMessageRead, setShowMessageRead] = useState(false);
+  const [currentMessageToRead, setCurrentMessageToRead] = useState<string | null>(null);
 
   useEffect(() => {
     console.log(`Territoire choisi : ${currentTerritory}`);
   }, [currentTerritory]);
+
+  useEffect(() => {
+    const handleShowMessageInput = (event: CustomEvent<{ messengerId: string; target: HexCoordinates; initialMessage: string }>) => {
+      setCurrentMessenger({
+        id: event.detail.messengerId,
+        target: event.detail.target
+      });
+      setShowMessageInput(true);
+    };
+
+    window.addEventListener('show-message-input', handleShowMessageInput as EventListener);
+
+    return () => {
+      window.removeEventListener('show-message-input', handleShowMessageInput as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleShowMessageRead = (event: CustomEvent<{ message: string }>) => {
+      setCurrentMessageToRead(event.detail.message);
+      setShowMessageRead(true);
+    };
+    window.addEventListener('show-message-read', handleShowMessageRead as EventListener);
+    return () => {
+      window.removeEventListener('show-message-read', handleShowMessageRead as EventListener);
+    };
+  }, []);
 
   const toggleMode = () => {
     setMode((prevMode) => (prevMode === "environment" ? "territory" : "environment"));
@@ -18,6 +51,33 @@ const App: React.FC = () => {
 
   const toggleWarfog = () => {
     setWarfogEnabled(prev => !prev);
+  };
+
+  const handleMessageConfirm = (message: string) => {
+    if (currentMessenger) {
+      window.dispatchEvent(new CustomEvent('messenger-message', {
+        detail: {
+          messengerId: currentMessenger.id,
+          target: currentMessenger.target,
+          message: message
+        }
+      }));
+
+      // Déplacer le messager après l'envoi du message
+      window.dispatchEvent(new CustomEvent('move-messenger', {
+        detail: {
+          messengerId: currentMessenger.id,
+          target: currentMessenger.target
+        }
+      }));
+    }
+    setShowMessageInput(false);
+    setCurrentMessenger(null);
+  };
+
+  const handleMessageInputClose = () => {
+    setShowMessageInput(false);
+    setCurrentMessenger(null);
   };
 
   const territories = ["Attica", "Thessaly", "Pelopponesus", "Neutral"];
@@ -59,6 +119,22 @@ const App: React.FC = () => {
         <p>
         </p>
       </footer>
+
+      {showMessageInput && (
+        <MessageInputModal
+          onConfirm={handleMessageConfirm}
+          onClose={handleMessageInputClose}
+        />
+      )}
+
+      {showMessageRead && currentMessageToRead !== null && (
+        <MessageInputModal
+          onConfirm={() => setShowMessageRead(false)}
+          onClose={() => setShowMessageRead(false)}
+          initialMessage={currentMessageToRead}
+          readOnly={true}
+        />
+      )}
     </div>
   );
 };

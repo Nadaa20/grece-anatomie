@@ -12,6 +12,8 @@ import { MoveOptionsPanel } from '../Troops/MoveOptionsPanel';
 import { SplitMovePanel } from '../Troops/SplitMovePanel';
 import { HexagonType, BUILDING_TYPES, BuildingType } from '../Cities/BuildingTypes';
 import { usePlayer } from '../../contexts/PlayerContext';
+import { Messager } from '../../entities/TroopTypes';
+import { Troop } from '../../entities/Troop';
 
 interface HexagonBaseProps {
     position: [number, number, number];
@@ -57,36 +59,36 @@ const HexagonBase: React.FC<HexagonBaseProps> = ({ position, radius, height, col
 
     const handleClick = (e: any) => {
         e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('hexagon-clicked'));
 
-        if (!isPlayerTerritory) {
-            console.log("Vous n'êtes pas le leader de ce territoire");
+        const troop = getTroopAtHex(row, col);
+        if (troop?.type === 'Messager' && (troop as Messager).getMessage() !== "") {
+            window.dispatchEvent(new CustomEvent('show-message-read', {
+                detail: { message: (troop as Messager).getMessage() }
+            }));
             return;
         }
 
-        // Log the territory information
-        console.log(`Hexagon clicked at (${row}, ${col}) - Territory: ${territory}`);
-
-        if (!selectedTroop) {
-            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
-            setShowDetail(true);
-            return;
-        }
-
-        if (selectedTroop && checkHexagonInteraction(e)) {
-            window.dispatchEvent(new CustomEvent('hexagon-clicked'));
+        if (selectedTroop) {
             const selectedTroopObj = troops.find(t => t.id === selectedTroop);
-
-            if (selectedTroopObj?.isSquad) {
+            if (selectedTroopObj?.type === 'Messager') {
+                // Afficher le modal de saisie de message
+                window.dispatchEvent(new CustomEvent('show-message-input', {
+                    detail: {
+                        messengerId: selectedTroop,
+                        target: { row, col },
+                        initialMessage: ''
+                    }
+                }));
+            } else if (selectedTroopObj?.isSquad) {
+                // Afficher les options de déplacement pour l'escouade
                 setShowMoveOptions(true);
             } else {
                 startMoving(selectedTroop, { row, col });
             }
-            return;
+        } else {
+            setShowDetail(true);
         }
-
-        window.dispatchEvent(new CustomEvent('hexagon-clicked'));
-        setShowDetail(false);
-        setShowMoveOptions(false);
     };
 
     const handlePointerOver = (e: any) => {
