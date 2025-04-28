@@ -1,29 +1,18 @@
-import React, { createContext, useEffect, useState } from 'react';
+import React, { createContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const URL = 'http://localhost:3000';
+const socket = io(URL, {
+    transports: ['websocket']
+});
 
 interface SocketContextType {
-    socket: Socket | null;
+    socket: Socket;
 }
 
-const SocketContext = createContext<SocketContextType>({ socket: null });
+const SocketContext = createContext<SocketContextType>({ socket });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [socket, setSocket] = useState<Socket | null>(null);
-
-    useEffect(() => {
-        const newSocket = io(URL, {
-            transports: ['websocket']
-        });
-
-        setSocket(newSocket);
-
-        return () => {
-            newSocket.close();
-        };
-    }, []);
-
     return (
         <SocketContext.Provider value={{ socket }}>
             {children}
