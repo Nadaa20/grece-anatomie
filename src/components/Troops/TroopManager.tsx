@@ -116,12 +116,57 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         return () => clearInterval(moveInterval);
     }, [isMoving, movingTroop, currentPathIndex, path, troops]);
 
+    // Détermine si une troupe/escouade contient un commandant
+    const containsCommandant = (troop: Troop): boolean => {
+        if (troop.type === 'Commandant') return true;
+        if (troop.isSquad && troop.troops) {
+            return troop.troops.some(t => t.type === 'Commandant');
+        }
+        return false;
+    };
+
+    // Détermine si une troupe/escouade est adjacente à un commandant
+    const isAdjacentToCommandant = (troop: Troop): boolean => {
+        const commandants = troops.filter(t => t.type === 'Commandant');
+        return commandants.some(cmd => {
+            const neighbors = getNeighbors(cmd.hexCoord);
+            return neighbors.some(coord => coord.row === troop.hexCoord.row && coord.col === troop.hexCoord.col);
+        });
+    };
+
+    // Détermine si une troupe/escouade est déplaçable
+    const isTroopMovable = (troop: Troop): boolean => {
+        if (troop.type === 'Commandant') return true;
+        if (containsCommandant(troop)) return true;
+        if (isAdjacentToCommandant(troop)) return true;
+        return false;
+    };
+
+    // Restreindre la sélection
     const selectTroop = (id: string) => {
+        const troop = troops.find(t => t.id === id);
+        if (!troop || !isTroopMovable(troop)) {
+            setSelectedTroop(null);
+            return;
+        }
         if (selectedTroop === id) {
             setSelectedTroop(null);
         } else {
             setSelectedTroop(id);
         }
+    };
+
+    // Restreindre le déplacement
+    const startMoving = (id: string, target: HexCoordinates) => {
+        const troop = troops.find(t => t.id === id);
+        if (!troop || !isTroopMovable(troop)) return;
+        const newPath = findPath(troop.hexCoord, target);
+        if (newPath.length === 0) return;
+        setPath(newPath);
+        setIsMoving(true);
+        setMovingTroop(id);
+        setCurrentPathIndex(0);
+        setSelectedTroop(null);
     };
 
     const moveTroop = (id: string, newHexCoord: HexCoordinates) => {
@@ -300,20 +345,6 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
         }
 
         return [];
-    };
-
-    const startMoving = (id: string, target: HexCoordinates) => {
-        const troop = troops.find(t => t.id === id);
-        if (!troop) return;
-
-        const newPath = findPath(troop.hexCoord, target);
-        if (newPath.length === 0) return;
-
-        setPath(newPath);
-        setIsMoving(true);
-        setMovingTroop(id);
-        setCurrentPathIndex(0);
-        setSelectedTroop(null);
     };
 
     useEffect(() => {
