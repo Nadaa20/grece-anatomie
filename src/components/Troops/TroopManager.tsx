@@ -2,6 +2,7 @@ import React, { useState, useContext, createContext, useRef, useCallback, useMem
 import { TroopModel } from './TroopModel';
 import { Troop, HexCoordinates, PathNode } from '../../entities/Troop';
 import { Hoplite, Frondeur, Messager, Commandant, Squad } from '../../entities/TroopTypes';
+import { usePlayer } from '../../contexts/PlayerContext';
 
 interface TroopManagerContextType {
     troops: Troop[];
@@ -42,6 +43,7 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
     const [targetTroopId, setTargetTroopId] = useState<string | null>(null);
     const [pendingMoves, setPendingMoves] = useState<{ id: string, target: HexCoordinates }[]>([]);
     const [currentTroopCreation, setCurrentTroopCreation] = useState<{ hexCoord: HexCoordinates, type: string, currentIndex: number } | null>(null);
+    const { currentTerritory } = usePlayer();
 
     // Effet pour initialiser les commandants
     useEffect(() => {
@@ -60,7 +62,14 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
             return new Commandant(commandantHexCoord, city.territory);
         });
 
-        setTroops(initialCommandants);
+        // Ajouter 3 hoplites de Thessaly près d'Athènes
+        const enemyHoplites = [
+            { row: 58, col: 61 }, // En haut à gauche d'Athènes
+            { row: 58, col: 63 }, // En haut à droite d'Athènes
+            { row: 60, col: 62 }  // En bas d'Athènes
+        ].map(coord => new Hoplite(coord, 'Thessaly'));
+
+        setTroops([...initialCommandants, ...enemyHoplites]);
     }, []);
 
     // Effet pour gérer les déplacements en attente
@@ -136,9 +145,16 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
 
     // Détermine si une troupe/escouade est déplaçable
     const isTroopMovable = (troop: Troop): boolean => {
+        // Vérifier d'abord si la troupe appartient au territoire du joueur actuel
+        if (troop.owner !== currentTerritory) {
+            return false;
+        }
+
+        // Si elle appartient au bon territoire, vérifier les conditions de déplacement
         if (troop.type === 'Commandant') return true;
         if (containsCommandant(troop)) return true;
         if (isAdjacentToCommandant(troop)) return true;
+
         return false;
     };
 
