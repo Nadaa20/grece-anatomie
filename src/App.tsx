@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import Game from "./components/Game/Game";
-import { usePlayer } from "./contexts/PlayerContext";
 import { MessageInputModal } from "./components/Interface2D/MessageInputModal";
 import { HexCoordinates } from "./entities/Troop";
 import { usePlayer, PlayerProvider } from "./contexts/PlayerContext";
