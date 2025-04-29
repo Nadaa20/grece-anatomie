@@ -5,7 +5,6 @@ import HexagonGrid from "../HexagonGrid/HexagonGrid";
 import { Interface2D } from "../Interface2D/Interface2D";
 import { TroopManagerProvider } from "../Troops/TroopManager";
 import { CityManagerProvider } from "../Cities/CityManager";
-import { PlayerProvider } from "../../contexts/PlayerContext";
 
 interface GameProps {
     mode: "environment" | "territory";
@@ -16,26 +15,24 @@ const Game: React.FC<GameProps> = ({ mode, warfogEnabled }) => {
     console.log('[CLIENT] Game monté');
     return (
         <>
-            <PlayerProvider>
-                <CityManagerProvider>
-                    <TroopManagerProvider>
-                        <Interface2D mode={mode} />
-                        <Canvas>
-                            <Camera />
+            <CityManagerProvider>
+                <TroopManagerProvider>
+                    <Interface2D mode={mode} />
+                    <Canvas>
+                        <Camera />
 
-                            <ambientLight intensity={0.7} />
-                            <directionalLight position={[10, 10, 10]} />
+                        <ambientLight intensity={0.7} />
+                        <directionalLight position={[10, 10, 10]} />
 
-                            <HexagonGrid
-                                heightmapPath="/assets/maps/heightmap.png"
-                                colormapPath="/assets/maps/colormap.png"
-                                mode={mode}
-                                warfogEnabled={warfogEnabled}
-                            />
-                        </Canvas>
-                    </TroopManagerProvider>
-                </CityManagerProvider>
-            </PlayerProvider>
+                        <HexagonGrid
+                            heightmapPath="/assets/maps/heightmap.png"
+                            colormapPath="/assets/maps/colormap.png"
+                            mode={mode}
+                            warfogEnabled={warfogEnabled}
+                        />
+                    </Canvas>
+                </TroopManagerProvider>
+            </CityManagerProvider>
         </>
     );
 };

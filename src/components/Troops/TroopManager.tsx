@@ -47,30 +47,37 @@ export const TroopManagerProvider: React.FC<TroopManagerProviderProps> = ({ chil
 
     // Effet pour initialiser les commandants
     useEffect(() => {
+        console.log(`Initialisation des commandants pour le territoire : ${currentTerritory}`);
         const initialCities = [
             { name: 'Athens', territory: 'Attica', hexCoord: { row: 59, col: 62 } },
             { name: 'Sparta', territory: 'Pelopponesus', hexCoord: { row: 77, col: 37 } },
             { name: 'Thebes', territory: 'Thessaly', hexCoord: { row: 48, col: 48 } }
         ];
 
-        const initialCommandants = initialCities.map(city => {
-            // Placer le commandant à droite de la ville
-            const commandantHexCoord = {
-                row: city.hexCoord.row,
-                col: city.hexCoord.col + 1
-            };
-            return new Commandant(commandantHexCoord, city.territory);
-        });
+        // Ne créer que le commandant du territoire actuel
+        const currentCity = initialCities.find(city => city.territory === currentTerritory);
+        console.log(`Ville trouvée : ${currentCity?.name}`);
+        const initialCommandants = currentCity ? [
+            new Commandant(
+                { row: currentCity.hexCoord.row, col: currentCity.hexCoord.col + 1 },
+                currentCity.territory,
+                currentCity.name
+            )
+        ] : [];
 
-        // Ajouter 3 hoplites de Thessaly près d'Athènes
-        const enemyHoplites = [
-            { row: 58, col: 61 }, // En haut à gauche d'Athènes
-            { row: 58, col: 63 }, // En haut à droite d'Athènes
-            { row: 60, col: 62 }  // En bas d'Athènes
-        ].map(coord => new Hoplite(coord, 'Thessaly'));
+        // Ajouter 3 hoplites ennemis près de la ville du territoire actuel
+        if (currentCity) {
+            const enemyHoplites = [
+                { row: currentCity.hexCoord.row - 1, col: currentCity.hexCoord.col - 1 }, // En haut à gauche
+                { row: currentCity.hexCoord.row - 1, col: currentCity.hexCoord.col + 1 }, // En haut à droite
+                { row: currentCity.hexCoord.row + 1, col: currentCity.hexCoord.col }      // En bas
+            ].map(coord => new Hoplite(coord, 'Thessaly', currentCity.name));
 
-        setTroops([...initialCommandants, ...enemyHoplites]);
-    }, []);
+            setTroops([...initialCommandants, ...enemyHoplites]);
+        } else {
+            setTroops(initialCommandants);
+        }
+    }, [currentTerritory]);
 
     // Effet pour gérer les déplacements en attente
     useEffect(() => {

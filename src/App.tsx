@@ -3,7 +3,7 @@ import "./App.css";
 import Game from "./components/Game/Game";
 import { MessageInputModal } from "./components/Interface2D/MessageInputModal";
 import { HexCoordinates } from "./entities/Troop";
-import { usePlayer } from "./contexts/PlayerContext";
+import { usePlayer, PlayerProvider } from "./contexts/PlayerContext";
 import WaitingRoom from './WaitingRoom/WaitingRoom';
 
 interface AppProps {
@@ -15,15 +15,28 @@ const AppContent: React.FC = () => {
   console.log('[CLIENT] AppContent monté');
   const [mode, setMode] = useState<"environment" | "territory">("environment");
   const [warfogEnabled, setWarfogEnabled] = useState(true);
-  const { currentTerritory, setCurrentTerritory } = usePlayer();
+  const [isTestMode, setIsTestMode] = useState(false);
+  const { currentTerritory } = usePlayer();
   const [showMessageInput, setShowMessageInput] = useState(false);
   const [currentMessenger, setCurrentMessenger] = useState<{ id: string; target: HexCoordinates } | null>(null);
   const [showMessageRead, setShowMessageRead] = useState(false);
   const [currentMessageToRead, setCurrentMessageToRead] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(`Territoire choisi : ${currentTerritory}`);
+    console.log(`Territoire choisi dans AppContent : ${currentTerritory}`);
   }, [currentTerritory]);
+
+  useEffect(() => {
+    const handleTestMode = (event: CustomEvent<{ isTest: boolean }>) => {
+      setIsTestMode(event.detail.isTest);
+    };
+
+    window.addEventListener('test-mode', handleTestMode as EventListener);
+
+    return () => {
+      window.removeEventListener('test-mode', handleTestMode as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const handleShowMessageInput = (event: CustomEvent<{ messengerId: string; target: HexCoordinates; initialMessage: string }>) => {
@@ -106,33 +119,22 @@ const AppContent: React.FC = () => {
     setCurrentMessenger(null);
   };
 
-  const territories = ["Attica", "Thessaly", "Pelopponesus", "Neutral"];
-
   return (
     <div className="App">
       <header className="App-header">
         <h1>Grèce Anatomie</h1>
         <h2>Commerces, guerres et conquêtes en 350 av. J.-C.</h2>
-        <div className="territory-buttons">
-          {territories.map((territory) => (
-            <button
-              key={territory}
-              onClick={() => setCurrentTerritory(territory)}
-              className={currentTerritory === territory ? "active" : ""}
-            >
-              {territory}
-            </button>
-          ))}
-        </div>
       </header>
       <main>
         <div className="mode-switch">
           <button onClick={toggleMode}>
             Passer en mode {mode === "environment" ? "territory" : "environment"}
           </button>
-          <button onClick={toggleWarfog}>
-            {warfogEnabled ? "Désactiver" : "Activer"} le brouillard de guerre
-          </button>
+          {isTestMode && (
+            <button onClick={toggleWarfog}>
+              {warfogEnabled ? "Désactiver" : "Activer"} le brouillard de guerre
+            </button>
+          )}
         </div>
         <div className="game-container" id="game-container">
           <Game mode={mode} warfogEnabled={warfogEnabled} />
@@ -163,10 +165,20 @@ const AppContent: React.FC = () => {
 
 const App: React.FC<AppProps> = ({ currentGameId, onGameReady }) => {
   console.log('[CLIENT] App monté');
-  if (!currentGameId) {
-    return <WaitingRoom onGameReady={onGameReady} />;
-  }
-  return <AppContent />;
+
+  const handleGameReady = (gameId: number) => {
+    onGameReady(gameId);
+  };
+
+  return (
+    <>
+      {!currentGameId ? (
+        <WaitingRoom onGameReady={handleGameReady} />
+      ) : (
+        <AppContent />
+      )}
+    </>
+  );
 };
 
 export default App;
