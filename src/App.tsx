@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import Game from "./components/Game/Game";
-import { usePlayer, PlayerProvider } from "./contexts/PlayerContext";
+import { usePlayer } from "./contexts/PlayerContext";
+import WaitingRoom from './WaitingRoom/WaitingRoom';
+
+interface AppProps {
+  currentGameId: number | null;
+  onGameReady: (gameId: number) => void;
+}
 
 const AppContent: React.FC = () => {
+  console.log('[CLIENT] AppContent monté');
   const [mode, setMode] = useState<"environment" | "territory">("environment");
   const [warfogEnabled, setWarfogEnabled] = useState(true);
   const { currentTerritory, setCurrentTerritory } = usePlayer();
@@ -39,7 +46,6 @@ const AppContent: React.FC = () => {
           ))}
         </div>
       </header>
-
       <main>
         <div className="mode-switch">
           <button onClick={toggleMode}>
@@ -49,26 +55,23 @@ const AppContent: React.FC = () => {
             {warfogEnabled ? "Désactiver" : "Activer"} le brouillard de guerre
           </button>
         </div>
-
         <div className="game-container" id="game-container">
           <Game mode={mode} warfogEnabled={warfogEnabled} />
         </div>
       </main>
-
       <footer className="App-footer">
-        <p>
-        </p>
+        <p></p>
       </footer>
     </div>
   );
 };
 
-const App: React.FC = () => {
-  return (
-    <PlayerProvider>
-      <AppContent />
-    </PlayerProvider>
-  );
+const App: React.FC<AppProps> = ({ currentGameId, onGameReady }) => {
+  console.log('[CLIENT] App monté');
+  if (!currentGameId) {
+    return <WaitingRoom onGameReady={onGameReady} />;
+  }
+  return <AppContent />;
 };
 
 export default App;

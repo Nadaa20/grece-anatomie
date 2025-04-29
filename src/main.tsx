@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import WaitingRoom from './WaitingRoom/WaitingRoom';
 import { SocketProvider } from './contexts/SocketContext';
+import { PlayerProvider } from './contexts/PlayerContext';
 
 const RootComponent: React.FC = () => {
     const [currentGameId, setCurrentGameId] = useState<number | null>(null);
@@ -16,11 +17,13 @@ const RootComponent: React.FC = () => {
 
     return (
         <SocketProvider>
-            {currentGameId ? (
-                <App />
-            ) : (
-                <WaitingRoom onGameReady={handleGameReady} />
-            )}
+            <PlayerProvider>
+                {currentGameId ? (
+                    <App currentGameId={currentGameId} onGameReady={handleGameReady} />
+                ) : (
+                    <WaitingRoom onGameReady={handleGameReady} />
+                )}
+            </PlayerProvider>
         </SocketProvider>
     );
 };

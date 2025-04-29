@@ -23,6 +23,13 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
     const [isWaiting, setIsWaiting] = useState<boolean>(false);
 
     useEffect(() => {
+        if (!socket) {
+            console.log('[CLIENT] En attente de la connexion socket...');
+            return;
+        }
+
+        console.log('[CLIENT] Configuration des événements socket');
+        
         socket.on('saved_games', (data: { games: Game[] }) => {
             setSavedGames(data.games);
         });
@@ -53,33 +60,63 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
         });
 
         return () => {
-            socket.off('saved_games');
-            socket.off('no_saved_games');
-            socket.off('waiting_for_players');
-            socket.off('game_ready');
-            socket.off('show_game_map');
-            socket.off('error');
+            if (socket) {
+                console.log('[CLIENT] Nettoyage des événements socket');
+                socket.off('saved_games');
+                socket.off('no_saved_games');
+                socket.off('waiting_for_players');
+                socket.off('game_ready');
+                socket.off('show_game_map');
+                socket.off('error');
+            }
         };
     }, [currentGameId, socket, onGameReady]);
 
     const handleUsernameSubmit = (username: string) => {
+        if (!socket) {
+            setError('La connexion au serveur n\'est pas établie');
+            return;
+        }
         console.log('Soumission du nom d\'utilisateur:', username);
         socket.emit('submit_username', username);
         setUsername(username);
     };
 
     const handleTestGame = () => {
+        if (!socket) {
+            setError('La connexion au serveur n\'est pas établie');
+            return;
+        }
         console.log('Clic sur le bouton de test');
         socket.emit('test_game');
     };
 
     const handleCreateNewGame = () => {
+        if (!socket) {
+            setError('La connexion au serveur n\'est pas établie');
+            return;
+        }
         socket.emit('create_new_game');
     };
 
     const handleJoinGame = (gameId: number) => {
+        if (!socket) {
+            setError('La connexion au serveur n\'est pas établie');
+            return;
+        }
         socket.emit('join_existing_game', gameId);
     };
+
+    if (!socket) {
+        return (
+            <div className="waiting-room">
+                <h1>Connexion au serveur...</h1>
+                <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                </div>
+            </div>
+        );
+    }
 
     if (!username) {
         return <UsernameForm 

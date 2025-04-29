@@ -1,5 +1,3 @@
-const gameManager = require('./gameManager');
-
 function setupConnectionHandlers(io, socket) {
     console.log('Nouveau gestionnaire de connexion configuré pour:', socket.id);
 

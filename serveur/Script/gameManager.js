@@ -51,6 +51,32 @@ class GameManager {
 
         return game.players.size >= 1; // On accepte maintenant un seul joueur pour le test
     }
+
+    async processTurnData(gameId, turnData, db) {
+        try {
+            console.log('[GameManager] Traitement des données du tour pour la partie', gameId);
+            const game = this.activeGames.get(gameId);
+            
+            if (!game) {
+                throw new Error('Partie non trouvée');
+            }
+
+            // Mise à jour de l'état du jeu avec les nouvelles données
+            game.state.lastTurn = turnData.turn;
+            game.state.lastUpdate = new Date();
+
+            // Pour le moment, on stocke simplement les données dans la base de données
+            if (db.saveTurnData) {
+                await db.saveTurnData(gameId, turnData);
+            }
+
+            console.log('[GameManager] Données du tour traitées avec succès');
+            return true;
+        } catch (error) {
+            console.error('[GameManager] Erreur lors du traitement des données du tour:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GameManager(); 

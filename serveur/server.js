@@ -17,15 +17,30 @@ const io = socketIo(server, {
 // DEPENDANCES
 const setupConnectionHandlers = require('./Script/connectionHandler');
 const setupGameHandlers = require('./Script/gameHandler');
+const setupTurnHandlers = require('./Script/turnHandler');
+
+// Base de données simulée pour le moment
+const db = {};
 
 //SERVEUR
 io.on('connection', (socket) => {
     console.log('Nouveau joueur connecté:', socket.id);
+
+    // Configuration des gestionnaires d'événements
     setupConnectionHandlers(io, socket);
-    setupGameHandlers(io, socket);
+    setupGameHandlers(io, socket, db);
+    setupTurnHandlers(io, socket, db);
+
+    // Log pour vérifier que les gestionnaires sont bien configurés
+    console.log('Événements socket configurés pour:', socket.id);
+    console.log('Liste des événements écoutés:', socket.eventNames());
+
+    socket.on('disconnect', () => {
+        console.log('Joueur déconnecté:', socket.id);
+    });
 });
 
-const port = 3000;
-server.listen(port, () => {
-    console.log(`Serveur démarré sur le port ` + port);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Serveur démarré sur le port ${PORT}`);
 }); 

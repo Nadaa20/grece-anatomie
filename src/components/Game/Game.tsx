@@ -13,6 +13,7 @@ interface GameProps {
 }
 
 const Game: React.FC<GameProps> = ({ mode, warfogEnabled }) => {
+    console.log('[CLIENT] Game monté');
     return (
         <>
             <PlayerProvider>

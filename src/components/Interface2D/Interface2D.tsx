@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Parchemin } from "./Parchemin.tsx";
 import { HexagonType } from "../Cities/BuildingTypes";
 import { useTroopManager } from "../Troops/TroopManager";
 import { useCityManager } from "../Cities/CityManager";
 import { HEX_RADIUS, TILE_X, TILE_Z } from "../HexagonGrid/constants";
 import { useHeightmap } from "../../hooks/useHeightmap";
-//import { socket } from "../../socket"; // Faudra modifier ceci quand le serveur sera fais
+import { SocketContext } from '../../contexts/SocketContext';
 
 interface ParcheminsData {
     Batiments: { [key: string]: number };
@@ -73,6 +73,7 @@ const loadImageData = async (path: string): Promise<ImageData | null> => {
 };
 
 export const Interface2D: React.FC<{ mode: "environment" | "territory" }> = ({ mode }) => {
+    console.log('[CLIENT] Interface2D monté');
     const [showParchemin, setShowParchemin] = useState(false);
     const [selectedHexagon, setSelectedHexagon] = useState<string | null>(null);
     const [hexagonType, setHexagonType] = useState<HexagonType>('city');
@@ -80,80 +81,7 @@ export const Interface2D: React.FC<{ mode: "environment" | "territory" }> = ({ m
     const { getHeight } = useHeightmap();
     const { troops } = useTroopManager();
     const { cities } = useCityManager();
-
-    const handleEndTurn = () => {
-        // Récupérer toutes les données des hexagones
-        const hexagonsData: HexagonData[] = [];
-
-        // Parcourir tous les hexagones de la grille
-        for (let row = 0; row < 100; row++) { // Ajuster selon la taille de la grille
-            for (let col = 0; col < 100; col++) {
-                const hexagonName = `${row}-${col}`;
-                const troop = troops.find(t => t.hexCoord.row === row && t.hexCoord.col === col);
-                const city = cities.find(c => c.hexCoord.row === row && c.hexCoord.col === col);
-
-                // Déterminer le type d'hexagone
-                let type = 'grass';
-                if (city) type = 'city';
-                else if (troop) type = 'occupied';
-
-                const x = col * TILE_X + (row % 2 === 0 ? 0 : TILE_X / 2);
-                const z = row * TILE_Z;
-                const height = getHeight(row, col);
-
-                const hexagonData: HexagonData = {
-                    row,
-                    col,
-                    type,
-                    territory: '',
-                    height,
-                    position: [x, height / 2, z],
-                    name: hexagonName,
-                    mode,
-                    radius: HEX_RADIUS
-                };
-
-                if (city) {
-                    hexagonData.city = {
-                        id: city.id,
-                        name: city.name,
-                        population: city.population,
-                        buildings: city.buildings,
-                        resources: city.resources
-                    };
-                }
-
-                if (troop) {
-                    hexagonData.troop = {
-                        id: troop.id,
-                        type: troop.type,
-                        owner: troop.owner,
-                        isSquad: troop.isSquad || false,
-                        troops: troop.troops
-                    };
-                }
-
-                hexagonsData.push(hexagonData);
-            }
-        }
-
-        // Créer le fichier JSON
-        const jsonData = {
-            turn: new Date().toISOString(),
-            hexagons: hexagonsData
-        };
-
-        // Créer et télécharger le fichier
-        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'output.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+    const { socket } = useContext(SocketContext);
 
     useEffect(() => {
         const handleShowParchemin = (event: CustomEvent<{ hexagonName: string; hexagonType: HexagonType; data?: ParcheminsData }>) => {
@@ -182,9 +110,136 @@ export const Interface2D: React.FC<{ mode: "environment" | "territory" }> = ({ m
         };
     }, []);
 
+    const handleEndTurn = async () => {
+        if (!socket) {
+            console.error('[CLIENT] Pas de connexion socket disponible');
+            return;
+        }
+
+        // Récupérer uniquement les hexagones qui ont des données importantes
+        const hexagonsData: HexagonData[] = [];
+        let totalHexagons = 0;
+        let hexagonesVides = 0;
+        let hexagonesAvecTroupes = 0;
+        let hexagonesAvecVilles = 0;
+
+        console.log('[CLIENT] Début de la collecte des données des hexagones');
+
+        for (let row = 0; row < 100; row++) {
+            for (let col = 0; col < 100; col++) {
+                totalHexagons++;
+                const troop = troops.find(t => t.hexCoord.row === row && t.hexCoord.col === col);
+                const city = cities.find(c => c.hexCoord.row === row && c.hexCoord.col === col);
+                
+                if (troop) hexagonesAvecTroupes++;
+                if (city) hexagonesAvecVilles++;
+                if (!troop && !city) {
+                    hexagonesVides++;
+                    // On inclut maintenant tous les hexagones
+                    // continue;
+                }
+
+                const x = col * TILE_X + (row % 2 === 0 ? 0 : TILE_X / 2);
+                const z = row * TILE_Z;
+                const height = getHeight(row, col);
+                
+                const hexagonData: HexagonData = {
+                    row,
+                    col,
+                    type: city ? 'city' : troop ? 'occupied' : 'grass',
+                    territory: '',
+                    height,
+                    position: [x, height / 2, z],
+                    name: `${row}-${col}`,
+                    mode,
+                    radius: HEX_RADIUS
+                };
+
+                if (city) {
+                    hexagonData.city = {
+                        id: city.id,
+                        name: city.name,
+                        population: city.population,
+                        buildings: city.buildings,
+                        resources: city.resources
+                    };
+                }
+
+                if (troop) {
+                    hexagonData.troop = {
+                        id: troop.id,
+                        type: troop.type,
+                        owner: troop.owner,
+                        isSquad: troop.isSquad || false,
+                        troops: troop.troops
+                    };
+                }
+
+                hexagonsData.push(hexagonData);
+            }
+        }
+
+        console.log('[CLIENT] Statistiques des hexagones :');
+        console.log(`- Total des hexagones : ${totalHexagons}`);
+        console.log(`- Hexagones vides : ${hexagonesVides}`);
+        console.log(`- Hexagones avec troupes : ${hexagonesAvecTroupes}`);
+        console.log(`- Hexagones avec villes : ${hexagonesAvecVilles}`);
+        console.log(`- Hexagones à envoyer : ${hexagonsData.length}`);
+
+        const jsonData = {
+            turn: new Date().toISOString(),
+            hexagons: hexagonsData
+        };
+
+        console.log('[CLIENT] socket.id =', socket.id);
+
+        // Envoyer les données en plusieurs parties si nécessaire
+        const CHUNK_SIZE = 1000; // Augmenté à 1000 hexagones par chunk
+        const chunks = [];
+        
+        for (let i = 0; i < hexagonsData.length; i += CHUNK_SIZE) {
+            chunks.push(hexagonsData.slice(i, i + CHUNK_SIZE));
+        }
+
+        try {
+            // Envoyer les chunks avec un délai entre chaque envoi
+            for (let i = 0; i < chunks.length; i++) {
+                const chunk = chunks[i];
+                const chunkData = {
+                    turn: jsonData.turn,
+                    chunk_index: i,
+                    total_chunks: chunks.length,
+                    hexagons: chunk
+                };
+                
+                socket.emit('end_turn_chunk', chunkData);
+                console.log(`[CLIENT] Chunk ${i + 1}/${chunks.length} envoyé (${chunk.length} hexagones)`);
+                
+                // Attendre 100ms entre chaque chunk
+                if (i < chunks.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            // Attendre un peu avant d'envoyer le message de fin
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Envoyer un message de fin
+            socket.emit('end_turn_complete', {
+                turn: jsonData.turn,
+                total_hexagons: hexagonsData.length
+            });
+
+            console.log('[CLIENT] Données envoyées en', chunks.length, 'chunks');
+        } catch (error) {
+            console.error('[CLIENT] Erreur lors de l\'envoi des données:', error);
+        }
+    };
+
     return (
         <div>
             <button
+                type="button"
                 onClick={handleEndTurn}
                 style={{
                     position: 'fixed',
