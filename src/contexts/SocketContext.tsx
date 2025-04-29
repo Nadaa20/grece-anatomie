@@ -51,6 +51,6 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
             {children}
         </SocketContext.Provider>
     );
-}; 
+};
 
 export { SocketContext, SocketProvider };

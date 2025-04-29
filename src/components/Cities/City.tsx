@@ -27,6 +27,12 @@ export interface City {
         row: number;
         col: number;
     };
+    workers?: {
+        [buildingId: string]: number;
+    };
+    troops?: {
+        [troopId: string]: number;
+    };
 }
 
 interface CityProps {

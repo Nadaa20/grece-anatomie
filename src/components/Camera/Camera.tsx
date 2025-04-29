@@ -28,7 +28,7 @@ const Camera: React.FC = () => {
         scene.add(pivot.current);
 
         const CAMERA_SPEED = 0.6;
-        const MIN_ZOOM = 10;
+        const MIN_ZOOM = 5;
         const MAX_ZOOM = 500;
         const ROTATION_SPEED = 1;
 

@@ -12,14 +12,14 @@ export interface TroopType {
     };
     stats: {
         attack: number;
-        defense: number;
+        health: number;
         speed: number;
     };
 }
 
 export const TROOP_TYPES: TroopType[] = [
     {
-        id: 'hoplite',
+        id: 'Hoplite',
         name: 'Hoplite',
         emoji: '🗡️',
         description: 'Soldat d\'infanterie lourdement armé, spécialisé dans le combat rapproché',
@@ -30,12 +30,12 @@ export const TROOP_TYPES: TroopType[] = [
         },
         stats: {
             attack: 5,
-            defense: 8,
+            health: 30,
             speed: 3
         }
     },
     {
-        id: 'slinger',
+        id: 'Slinger',
         name: 'Frondeur',
         emoji: '🎯',
         description: 'Soldat léger équipé d\'une fronde, efficace à distance',
@@ -45,12 +45,12 @@ export const TROOP_TYPES: TroopType[] = [
         },
         stats: {
             attack: 4,
-            defense: 2,
+            health: 15,
             speed: 5
         }
     },
     {
-        id: 'messenger',
+        id: 'Messenger',
         name: 'Messager',
         emoji: '🏃',
         description: 'Unité rapide pour la communication entre cités',
@@ -59,8 +59,24 @@ export const TROOP_TYPES: TroopType[] = [
         },
         stats: {
             attack: 1,
-            defense: 1,
+            health: 15,
             speed: 8
+        }
+    },
+    {
+        id: 'Commandant',
+        name: 'Commandant',
+        emoji: '👑',
+        description: 'Leader charismatique qui inspire ses troupes',
+        cost: {
+            population: 1,
+            iron: 3,
+            wood: 2
+        },
+        stats: {
+            attack: 3,
+            health: 45,
+            speed: 4
         }
     }
 ]; 

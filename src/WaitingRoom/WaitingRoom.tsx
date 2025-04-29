@@ -30,6 +30,7 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
 
         console.log('[CLIENT] Configuration des événements socket');
         
+
         socket.on('saved_games', (data: { games: Game[] }) => {
             setSavedGames(data.games);
         });
@@ -120,9 +121,9 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
 
     if (!username) {
         return <UsernameForm 
-            onSubmit={handleUsernameSubmit} 
-            error={error} 
-            onTestGame={handleTestGame}
+        onSubmit={handleUsernameSubmit} 
+        error={error} 
+        onTestGame={handleTestGame}
         />;
     }
 
@@ -134,9 +135,9 @@ const WaitingRoom: React.FC<WaitingRoomProps> = ({ onGameReady }) => {
         <div className="waiting-room">
             <h1>Bienvenue, {username}!</h1>
             {error && <div className="error">{error}</div>}
-            
+
             {savedGames.length > 0 ? (
-                <GameList 
+                <GameList
                     games={savedGames}
                     onJoinGame={handleJoinGame}
                     onCreateNewGame={handleCreateNewGame}

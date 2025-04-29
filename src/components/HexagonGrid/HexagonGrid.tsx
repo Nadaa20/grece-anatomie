@@ -58,15 +58,28 @@ const calculateDistance = (row1: number, col1: number, row2: number, col2: numbe
     return Math.max(dx, dy);
 };
 
-const getWarfogIntensity = (row: number, col: number, commanders: Troop[], currentTerritory: string): number => {
+const getWarfogIntensity = (row: number, col: number, commanders: Troop[], currentTerritory: string, troops: Troop[]): number => {
     if (commanders.length === 0) return 1;
 
-    const playerCommanders = commanders.filter(commander => commander.owner === currentTerritory);
-    if (playerCommanders.length === 0) return 1;
+    // Inclure les escouades contenant un commandant
+    const allCommandantPositions = [
+        ...commanders.map(cmd => cmd.hexCoord),
+        ...commanders
+            .flatMap(cmd => {
+                // Chercher les escouades qui contiennent ce commandant
+                return troops.filter((t: any) => t.isSquad && t.troops && t.troops.some((tt: any) => tt.id === cmd.id)).map((s: any) => s.hexCoord);
+            })
+    ];
+    const playerCommandantPositions = allCommandantPositions.filter(pos => {
+        // Ne prendre en compte que les commandants du territoire actuel
+        const troop = troops.find(t => t.hexCoord.row === pos.row && t.hexCoord.col === pos.col);
+        return troop && troop.owner === currentTerritory;
+    });
+    if (playerCommandantPositions.length === 0) return 1;
 
-    const minDistance = Math.min(...playerCommanders.map(commander =>
-        calculateDistance(row, col, commander.hexCoord.row, commander.hexCoord.col)
-    ));
+    const minDistance = Math.min(...playerCommandantPositions.map(pos => {
+        return calculateDistance(row, col, pos.row, pos.col);
+    }));
 
     if (minDistance <= 1) return 0;
     return 1;
@@ -135,7 +148,7 @@ const HexagonGrid: React.FC<HexagonGridProps> = ({
             const baseName = `${row}-${col}`;
             let hexName = "";
 
-            const warfogIntensity = warfogEnabled ? getWarfogIntensity(row, col, commanders, currentTerritory) : 0;
+            const warfogIntensity = warfogEnabled ? getWarfogIntensity(row, col, commanders, currentTerritory, troops) : 0;
 
             if (height > 4) {
                 hexName = `Stone-${territory || "Neutral"}-(${baseName})`;
@@ -233,7 +246,7 @@ const HexagonGrid: React.FC<HexagonGridProps> = ({
                 const height = getHeight(city.hexCoord.row, city.hexCoord.col);
                 const y = height / 2;
 
-                const cityWarfogIntensity = warfogEnabled ? getWarfogIntensity(city.hexCoord.row, city.hexCoord.col, commanders, currentTerritory) : 0;
+                const cityWarfogIntensity = warfogEnabled ? getWarfogIntensity(city.hexCoord.row, city.hexCoord.col, commanders, currentTerritory, troops) : 0;
 
                 if (cityWarfogIntensity > 0) return null;
 
